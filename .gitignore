@@ -1,2 +1,17 @@
 # Keep the private product specification and roadmap local.
 /Venturi_AI_Product_Specification_and_Roadmap.md
+.tools/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+node_modules/
+dist/
+target/
+/apps/desktop/src-tauri/gen/schemas/
+artifacts/
+playwright-report/
+test-results/
+.DS_Store

@@ -1,0 +1,6 @@
+{
+  "identifier": "main-window",
+  "description": "Save an exported run to the path selected by the user.",
+  "windows": ["main"],
+  "permissions": ["core:default", "dialog:allow-save", "fs:allow-write-file"]
+}

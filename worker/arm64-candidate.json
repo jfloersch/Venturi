@@ -1,0 +1,8 @@
+{
+  "Version": "20260724",
+  "Architecture": "arm64",
+  "Filename": "dists/jammy/main/binary-arm64/openfoam14_20260724_arm64.deb",
+  "SHA256": "f6620323d7064b40a33ed37d7f43df349739b10c9a0aaf36cafb0ad5adbeddee",
+  "Depends": "g++, libreadline-dev, libc6 (>= 2.35), libgcc-s1 (>= 3.0), libopenmpi3 (>= 4.1.2), libstdc++6 (>= 9), zlib1g (>= 1:1.1.4), binutils-dev, flex, libopenmpi-dev, libxt-dev, openmpi-bin, gnuplot, gnuplot-x11, make",
+  "status": "Available upstream; not executed on ARM64 hardware"
+}

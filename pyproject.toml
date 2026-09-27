@@ -1,0 +1,38 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "venturi-workbench"
+version = "0.0.1"
+description = "Venturi's local CFD compatibility workbench"
+requires-python = ">=3.11,<3.14"
+dependencies = [
+  "pydantic>=2.11,<3",
+  "fastapi>=0.115,<1",
+  "uvicorn>=0.34,<1",
+  "numpy>=2.2,<3",
+  "matplotlib>=3.10,<4",
+]
+
+[project.optional-dependencies]
+cad = ["cadquery-ocp==7.8.1.1.post1"]
+dev = ["pytest>=8.3,<10", "httpx>=0.28,<1", "ruff>=0.11,<1"]
+
+[project.scripts]
+venturi = "venturi.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/venturi"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["integration: runs the actual OpenFOAM toolchain", "cad: requires Open CASCADE"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]

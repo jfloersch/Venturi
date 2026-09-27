@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "distribution": "OpenFOAM Foundation",
+  "version": "14",
+  "package_version": "20260724",
+  "platform": "ubuntu-22.04-amd64",
+  "url": "https://dl.openfoam.org/ubuntu/dists/jammy/main/binary-amd64/openfoam14_20260724_amd64.deb",
+  "sha256": "daf6264d876e27507713fc8b51230ec5152623d42b49ec2e3f8914c8ec86f2dd",
+  "source_url": "https://github.com/OpenFOAM/OpenFOAM-14",
+  "arm64_status": "requires qualification on Apple Silicon / Linux ARM64"
+}

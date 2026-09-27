@@ -1,0 +1,7 @@
+{
+  "version": "6.0.1",
+  "platform": "linux-x86_64",
+  "url": "https://www.paraview.org/files/v6.0/ParaView-6.0.1-MPI-Linux-Python3.12-x86_64.tar.gz",
+  "sha256": "62995dc07907d0fe5049244b5fa82b03e9f0fe255159fa690d586367dfcb1959",
+  "directory": "ParaView-6.0.1-MPI-Linux-Python3.12-x86_64"
+}
