@@ -6,10 +6,13 @@ This checkout implements **milestone 1a**, a reproducible laminar-pipe reference
 
 ## Try it on Ubuntu 22.04 / WSL2
 
-Prerequisites: Python 3.11+ for the setup script, [uv](https://docs.astral.sh/uv/), and Node.js 22.12+ **inside Linux**. The native desktop additionally needs Rust and the [Tauri Linux prerequisites](https://v2.tauri.app/start/prerequisites/). Browser mode does not need Rust.
+Prerequisites: [uv](https://docs.astral.sh/uv/) and Node.js 22.12+ **inside Linux**. uv installs the project's Python 3.12 interpreter. The CAD bindings also require Linux graphics libraries, even when running the worker without a display. The native desktop additionally needs Rust and the [Tauri Linux prerequisites](https://v2.tauri.app/start/prerequisites/). Browser mode does not need Rust.
 
 ```bash
-python3 scripts/bootstrap_worker.py
+sudo apt-get update
+sudo apt-get install -y ca-certificates libstdc++6 libgomp1 libgl1 libxrender1
+uv python install 3.12
+uv run --no-project --python 3.12 python scripts/bootstrap_worker.py
 uv sync --locked --extra cad --extra dev
 cd apps/desktop
 npm ci

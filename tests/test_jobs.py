@@ -101,7 +101,9 @@ def test_killed_runner_is_interrupted_and_descendants_are_reaped(tmp_path, sleep
     descendant = process_identity(int((folder / "descendant.pid").read_text()))
     os.kill(state["process"]["pid"], signal.SIGKILL)
     until(lambda: not process_alive(state["process"]))
-    recovered = reconcile(folder)
+    # Process death and release of its file lock are asynchronous. The API/CLI
+    # poll reconciliation; require bounded recovery instead of an immediate read.
+    recovered = until(lambda: (value := reconcile(folder))["status"] == "interrupted" and value)
     assert recovered["status"] == "interrupted"
     until(lambda: not process_alive(descendant))
     assert verify(folder)

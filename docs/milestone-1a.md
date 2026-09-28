@@ -51,6 +51,12 @@ tracked. They do not prevent implementation or local testing of this contract.
 
 **Status: implemented and locally verified, 2026-09-27. Worker/application version: 0.1.0.**
 
+The subsequent [development closeout](milestone-1a-closeout.md) completed a fresh
+Ubuntu userspace installation/replay, 72 Python tests, native Linux GUI lifecycle
+and export checks, and eight physical/grid cases. It records the setup/test fixes
+and the decision to proceed with milestone 1b development. The table below records
+the original implementation acceptance run.
+
 | Check | Measured outcome |
 |---|---|
 | Python acceptance suite | **70 passed**, including real CLI solve/export/replay and CAD meshing |

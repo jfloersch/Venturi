@@ -29,6 +29,20 @@ npm run test:e2e
 npm run tauri build -- --no-bundle
 ```
 
+For the additional parameter and grid regression, run from the repository root:
+
+```bash
+uv run --locked python scripts/check_reference_matrix.py --output artifacts/pipe-matrix-new
+```
+
+Choose a new directory for every invocation. This runs eight actual solver cases,
+declares scaling/grid criteria before execution, and preserves each study, report
+and manifest. The fine grid has a 900-second solver limit and the matrix uses a
+1,200-second per-attempt total budget. Allow several minutes; the original
+300-second fine-grid attempt timed out under concurrent load. The measured
+[1a closeout](milestone-1a-closeout.md) includes the retained failure and successful
+fresh attempt, clean-install results, and native WSLg smoke-test evidence.
+
 Playwright owns ports 1421 and 8766, starts a real worker with an isolated test token, and performs real OpenFOAM runs. It can run alongside a development session on 1420/8765. Install its browser once with `npx playwright install chromium`; Linux CI uses `--with-deps`. Screenshots are saved under `artifacts/screenshots`. Traces for failures are under `apps/desktop/test-results`.
 
 ## Reproduce an exported numerical case

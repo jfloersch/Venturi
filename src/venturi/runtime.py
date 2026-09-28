@@ -75,9 +75,21 @@ def diagnostics() -> dict:
         checks.append(
             {"name": "STEP geometry", "status": "pass", "detail": f"Open CASCADE bindings {cad}"}
         )
-    except (ImportError, importlib.metadata.PackageNotFoundError) as e:
+    except importlib.metadata.PackageNotFoundError as e:
         checks.append(
             {"name": "STEP geometry", "status": "fail", "detail": f"Install the cad extra: {e}"}
+        )
+    except (ImportError, OSError) as e:
+        checks.append(
+            {
+                "name": "STEP geometry",
+                "status": "fail",
+                "detail": (
+                    "CAD bindings are installed but could not load. On Ubuntu 22.04, install "
+                    "libgl1 and libxrender1, then run uv sync --locked --extra cad. "
+                    f"Loader error: {e}"
+                ),
+            }
         )
     available = False
     runtime = None

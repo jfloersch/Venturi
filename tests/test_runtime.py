@@ -85,3 +85,34 @@ def test_memory_limit_is_inherited_by_tool(fake_runtime, tmp_path):
         with pytest.raises(RuntimeError, match="status"):
             run_tool("foamRun", tmp_path / "case", 10)
     assert "MemoryError" in (tmp_path / "logs/foamRun.log").read_text()
+
+
+@pytest.mark.parametrize("installed", [False, True])
+def test_cad_diagnostic_distinguishes_package_from_system_library(monkeypatch, installed):
+    import builtins
+    import importlib.metadata
+
+    from venturi.runtime import diagnostics
+
+    real_import = builtins.__import__
+
+    def version(name):
+        if not installed:
+            raise importlib.metadata.PackageNotFoundError(name)
+        return "7.8.1.1.post1"
+
+    def import_without_gl(name, *args, **kwargs):
+        if name == "OCP.STEPControl":
+            raise ImportError("libGL.so.1: cannot open shared object file")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(importlib.metadata, "version", version)
+    monkeypatch.setattr(builtins, "__import__", import_without_gl)
+    monkeypatch.setattr("venturi.runtime.find_foam_root", lambda: None)
+    check = diagnostics()["checks"][0]
+    assert check["status"] == "fail"
+    if installed:
+        assert "libgl1 and libxrender1" in check["detail"]
+        assert "libGL.so.1" in check["detail"]
+    else:
+        assert "Install the cad extra" in check["detail"]
