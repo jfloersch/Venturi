@@ -27,6 +27,19 @@ from .models import (
 )
 from .recipes import internal_recipe, pipe_recipe
 from .runtime import diagnostics
+from .workspace import (
+    AnnotationSave,
+    StudySave,
+    artifact_diff,
+    artifact_inventory,
+    artifact_text,
+    geometry_record,
+    notes_record,
+    plan_study,
+    save_notes,
+    save_study,
+    study_record,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -86,6 +99,60 @@ def create_app(storage: Path, token: str) -> FastAPI:
         except (ValueError, KeyError) as exc:
             raise HTTPException(404, "Run not found.") from exc
 
+    def workspace_call(operation):
+        try:
+            return operation()
+        except (ValueError, OSError, KeyError) as exc:
+            raise HTTPException(409, str(exc)) from exc
+
+    @app.get("/v1/workspace", dependencies=[Depends(auth)])
+    def workspace():
+        studies = sorted(
+            [read_json(p) for p in (storage / "studies").glob("*/current.json")],
+            key=lambda s: s["updated_at"],
+            reverse=True,
+        )
+        active = (
+            read_json(storage / "active-study.json")
+            if (storage / "active-study.json").exists()
+            else None
+        )
+        return {"studies": studies, "active_id": active.get("id") if active else None}
+
+    @app.post("/v1/studies/plan", dependencies=[Depends(auth)])
+    def study_plan(study: InternalFlowStudy):
+        return workspace_call(lambda: plan_study(storage, study))
+
+    @app.post("/v1/studies", dependencies=[Depends(auth)])
+    def save_desktop_study(request: StudySave):
+        return workspace_call(lambda: save_study(storage, request))
+
+    @app.post("/v1/studies/{study_id}/open", dependencies=[Depends(auth)])
+    def open_study(study_id: str):
+        def load():
+            with geometry_lock:
+                record = study_record(storage, study_id)
+                key = record["study"]["selection"]["geometry_hash"]
+                g = geometry_record(storage, key)
+                g["selection"] = record["study"]["selection"]
+                g["imported"] = True
+                write_json(storage / "geometry" / key / "selection.json", g["selection"])
+                write_json(
+                    storage / "active-geometry.json", {"geometry_hash": key, "imported": True}
+                )
+                write_json(storage / "active-study.json", {"id": study_id})
+                return {"record": record, "geometry": g}
+
+        return workspace_call(load)
+
+    @app.get("/v1/geometry/{geometry_hash}/annotations", dependencies=[Depends(auth)])
+    def get_annotations(geometry_hash: str):
+        return workspace_call(lambda: notes_record(storage, geometry_hash))
+
+    @app.post("/v1/annotations", dependencies=[Depends(auth)])
+    def set_annotations(request: AnnotationSave):
+        return workspace_call(lambda: save_notes(storage, request))
+
     @app.get("/v1/health")
     def health():
         return {"protocol_version": PROTOCOL_VERSION, "status": "ready"}
@@ -117,7 +184,7 @@ def create_app(storage: Path, token: str) -> FastAPI:
             folder = storage / "geometry" / key
             if not (folder / "source.step").is_file() or file_hash(folder / "source.step") != key:
                 raise HTTPException(409, "Stored geometry changed; import and confirm it again.")
-            g = read_json(folder / "geometry.json")
+            g = workspace_call(lambda: geometry_record(storage, key))
             g["imported"] = revision.get("imported", bool(g.get("imported")))
         else:
             g = fixture()
@@ -212,6 +279,18 @@ def create_app(storage: Path, token: str) -> FastAPI:
     @app.get("/v1/runs/{run_id}/events", dependencies=[Depends(auth)])
     def get_events(run_id: str):
         return [read_json(p) for p in sorted((run_folder(run_id) / "events").glob("*.json"))]
+
+    @app.get("/v1/runs/{run_id}/artifacts", dependencies=[Depends(auth)])
+    def list_artifacts(run_id: str):
+        return artifact_inventory(run_folder(run_id))
+
+    @app.get("/v1/runs/{run_id}/text", dependencies=[Depends(auth)])
+    def view_text(run_id: str, path: str):
+        return workspace_call(lambda: artifact_text(run_folder(run_id), path))
+
+    @app.get("/v1/runs/{run_id}/diff", dependencies=[Depends(auth)])
+    def view_diff(run_id: str, other: str, path: str):
+        return workspace_call(lambda: artifact_diff(run_folder(run_id), run_folder(other), path))
 
     @app.post("/v1/runs/{run_id}/cancel", dependencies=[Depends(auth)])
     def cancel_run(run_id: str):

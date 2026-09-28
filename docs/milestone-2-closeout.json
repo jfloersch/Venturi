@@ -1,0 +1,451 @@
+{
+  "schema_version": "venturi.milestone-2-evidence.v1",
+  "version": "0.3.0",
+  "date": "2026-09-27",
+  "decision": "Guided desktop alpha implementation verified on Linux/WSL; observed target-user pilot exit gate remains pending.",
+  "python": {
+    "command": "VENTURI_INTEGRATION=1 uv run pytest -q --basetemp=artifacts/milestone-2/python --junitxml=artifacts/milestone-2/python-results.xml",
+    "name": "pytest",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "tests": "144",
+    "time": "623.691",
+    "timestamp": "2026-09-27T22:33:34.786946-05:00",
+    "hostname": "Jared",
+    "actual_runtime_integration_tests": 19,
+    "new_workspace_tests": 14,
+    "junit_sha256": "c788488623ec9ccf2b6ddb6dd4d97f12902900ab6accab804e5351d8f343f1ab"
+  },
+  "browser": {
+    "scenarios_passed": 5,
+    "elapsed_seconds_rounded": 174,
+    "storage": "artifacts/e2e/session-1790566317955",
+    "final_regression": "The save/submission input lock and stale in-flight review/budget/outage scenario were rerun after final form changes.",
+    "mocks": "No solver outcomes mocked; browser tests delay responses, interrupt polling and blank the framebuffer to exercise failure guards."
+  },
+  "builds": {
+    "typescript_vite": "passed",
+    "linux_tauri_release_no_bundle": "passed",
+    "rust_format": "passed",
+    "python_lint_and_format": "passed",
+    "prettier": "passed",
+    "native_ui_smoke": "not run: an existing worker occupies required port 8765; it was left running",
+    "remote_ci": "not run",
+    "linux_binary_sha256": "02b7da0f6ede166e0de36590316fa7d17104747ea68961992ddc7885c38fb403"
+  },
+  "manifold": {
+    "run_id": "904f6f39143445e583b4b4568d9c0b61",
+    "status": "passed",
+    "pressure_drop_pa": 0.04249171460614,
+    "outlets": {
+      "outlet_1": {
+        "face_ids": [
+          "face_cec5d59a563ac5cd"
+        ],
+        "volume_flow_m3_s": 7.853847893508e-08,
+        "flow_fraction": 0.4999914858138055,
+        "pressure_drop_pa": 0.04249171460614,
+        "backflow_fraction": 0.0
+      },
+      "outlet_2": {
+        "face_ids": [
+          "face_8e8cabc457e7438c"
+        ],
+        "volume_flow_m3_s": 7.854115374556e-08,
+        "flow_fraction": 0.5000085141861944,
+        "pressure_drop_pa": 0.04249171460614,
+        "backflow_fraction": 0.0
+      }
+    },
+    "mass_imbalance": 6.620999123704055e-12,
+    "mesh_hash": "0c4fcf629ed7f6d0f3432bcaa737a37a887a38ba3d5c6e9d8f55a6e0a32164e9",
+    "study_hash": "60d364e500e43f25fb5ec3a8b62dc0c0540c0b3e247f3cb611b52b8d4f61065e",
+    "checks": [
+      {
+        "name": "Mesh quality",
+        "status": "pass",
+        "detail": "OpenFOAM checkMesh -allTopology -allGeometry: Mesh OK."
+      },
+      {
+        "name": "Connected fluid mesh",
+        "status": "pass",
+        "detail": "1 connected cell regions; exactly one required."
+      },
+      {
+        "name": "Cell budget",
+        "status": "pass",
+        "detail": "35168 cells; limit 250000."
+      },
+      {
+        "name": "Enclosed volume",
+        "status": "pass",
+        "detail": "CAD/mesh volume difference 0.453%; limit 5%."
+      },
+      {
+        "name": "Boundary completeness",
+        "status": "pass",
+        "detail": "Every selected port and wall must survive meshing; no exposed background patches."
+      },
+      {
+        "name": "inlet mapping",
+        "status": "pass",
+        "detail": "Area error 0.466%; centroid displacement 2.71e-13 m; outward-normal dot 0.9999999999999998."
+      },
+      {
+        "name": "wall mapping",
+        "status": "pass",
+        "detail": "Area error 0.130%; centroid displacement 5.06e-07 m; outward-normal dot not applicable."
+      },
+      {
+        "name": "outlet_1 mapping",
+        "status": "pass",
+        "detail": "Area error 0.462%; centroid displacement 4.18e-08 m; outward-normal dot 1.0000000000000002."
+      },
+      {
+        "name": "outlet_2 mapping",
+        "status": "pass",
+        "detail": "Area error 0.462%; centroid displacement 4.1e-08 m; outward-normal dot 0.9999999999999987."
+      },
+      {
+        "name": "Solver completed",
+        "status": "pass",
+        "detail": "Recorded iteration 600 of 600."
+      },
+      {
+        "name": "Prescribed inlet flow",
+        "status": "pass",
+        "detail": "Measured 1.5707963e-07 m\u00b3/s; prescribed 1.5707963e-07 m\u00b3/s."
+      },
+      {
+        "name": "Mass conservation",
+        "status": "pass",
+        "detail": "Net flow imbalance 0.0000%; limit 0.1%."
+      },
+      {
+        "name": "Pressure-drop stability",
+        "status": "pass",
+        "detail": "Positive inlet-to-outlet drop; final-window variation 0.0000%; limit 0.1%."
+      },
+      {
+        "name": "Outlet flow stability",
+        "status": "pass",
+        "detail": "Largest final-window branch variation 0.0000%; limit 0.1%."
+      },
+      {
+        "name": "Equation residuals",
+        "status": "pass",
+        "detail": "Final initial residuals {'Ux': 1.83496348081e-12, 'Uy': 1.23056616903e-12, 'Uz': 3.97816248728e-13, 'p': 7.49243660026e-11}; limit 1e-5."
+      },
+      {
+        "name": "Outlet direction and backflow",
+        "status": "pass",
+        "detail": "Reverse outlet flows / prescribed inlet: {'outlet_1': 0.0, 'outlet_2': 0.0}; limit 0.1%."
+      },
+      {
+        "name": "Impermeable walls",
+        "status": "pass",
+        "detail": "Absolute wall flux / inlet flow 0; limit 1e-7."
+      },
+      {
+        "name": "Field export",
+        "status": "pass",
+        "detail": "Native case and VTK fields retained."
+      },
+      {
+        "name": "Frozen native inputs",
+        "status": "pass",
+        "detail": "Approved mesh, dictionaries and initial fields remained unchanged."
+      },
+      {
+        "name": "Frozen geometry and study",
+        "status": "pass",
+        "detail": "Source STEP, study and recipe match the executed inputs."
+      }
+    ],
+    "desktop_context": {
+      "study": {
+        "id": "7dfaaf325b1b45c39660a9d84c2e1105",
+        "study": {
+          "schema_version": "venturi.internal-study.v1",
+          "name": "manifold.step",
+          "recipe": "laminar-internal/1",
+          "physics": "steady-incompressible-newtonian-laminar",
+          "units": "SI",
+          "quantity": "inlet-to-outlet-static-pressure-and-flow-split",
+          "selection": {
+            "geometry_hash": "087c012aca0b254d8cc15bc2c732d62fb0badd15f80d0d5335e43305167d7534",
+            "assignments": {
+              "face_0ee931c905af7ad3": "wall",
+              "face_9a2d50514244382f": "wall",
+              "face_31c73b3d54eceef0": "inlet",
+              "face_cec5d59a563ac5cd": "outlet",
+              "face_8e8cabc457e7438c": "outlet"
+            }
+          },
+          "flow_rate_m3_s": 1.5707963267948966e-07,
+          "density_kg_m3": 1000.0,
+          "dynamic_viscosity_pa_s": 0.001,
+          "inlet_profile": "uniform-normal",
+          "outlet_pressure_pa": 0,
+          "mesh": {
+            "cell_size_m": 0.000625,
+            "maximum_cells": 250000,
+            "timeout_seconds": 600
+          },
+          "max_iterations": 600,
+          "timeout_seconds": 900,
+          "resources": {
+            "wall_time_seconds": 2400,
+            "memory_mb": 4096,
+            "disk_mb": 2048
+          }
+        },
+        "question": "Is the manifold outlet flow evenly divided at the prescribed flow?",
+        "material_source": "Water approximation: 1000 kg/m\u00b3 and 0.001 Pa\u00b7s, user supplied for this comparison",
+        "profile": "guided",
+        "schema_version": "venturi.desktop-study.v1",
+        "revision": 2,
+        "updated_at": "2026-09-28T03:33:07.950427+00:00",
+        "study_hash": "60d364e500e43f25fb5ec3a8b62dc0c0540c0b3e247f3cb611b52b8d4f61065e"
+      },
+      "annotations": {
+        "geometry_hash": "087c012aca0b254d8cc15bc2c732d62fb0badd15f80d0d5335e43305167d7534",
+        "revision": 1,
+        "annotations": [
+          {
+            "id": "aa1c04f1-dba3-4b54-82e2-4db1dbe9b32f",
+            "entity_id": "edge_e5304627effcc684",
+            "label": "Supply rim",
+            "text": "Check the port mapping at this edge.",
+            "position_m": [
+              3.061616997868178e-19,
+              0.005,
+              0.05
+            ],
+            "camera": {
+              "position": [
+                0.11454971084162811,
+                -0.07049212974869423,
+                -0.056209404225586
+              ],
+              "focal_point": [
+                0.0,
+                0.0,
+                0.027499999850988388
+              ],
+              "view_up": [
+                0.0,
+                0.0,
+                1.0
+              ]
+            },
+            "reference": {
+              "id": "edge_e5304627effcc684",
+              "index": 0,
+              "length_m": 0.019100999965669333,
+              "centroid_m": [
+                -0.0030045425044895827,
+                3.8311289175277354e-19,
+                0.04699545749551042
+              ],
+              "curve_type": "GeomAbs_Ellipse",
+              "adjacent_faces": [
+                "face_0ee931c905af7ad3",
+                "face_9a2d50514244382f"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "resource_stop": {
+    "run_id": "b3189ab770f24e4ba5c29b2354028ade",
+    "status": "failed",
+    "error": "TimeoutError: Attempt exceeded its total wall-time limit.",
+    "resources": {
+      "wall_time_seconds": 1,
+      "memory_mb": 4096,
+      "disk_mb": 2048
+    }
+  },
+  "ui_archive_replay": {
+    "status": "passed",
+    "pressure_relative_difference": 0.0,
+    "outlet_relative_differences": {
+      "outlet_1": 0.0,
+      "outlet_2": 0.0
+    },
+    "checks": [
+      {
+        "name": "Mesh quality",
+        "status": "pass",
+        "detail": "OpenFOAM checkMesh -allTopology -allGeometry: Mesh OK."
+      },
+      {
+        "name": "Connected fluid mesh",
+        "status": "pass",
+        "detail": "1 connected cell regions; exactly one required."
+      },
+      {
+        "name": "Cell budget",
+        "status": "pass",
+        "detail": "35168 cells; limit 250000."
+      },
+      {
+        "name": "Enclosed volume",
+        "status": "pass",
+        "detail": "CAD/mesh volume difference 0.453%; limit 5%."
+      },
+      {
+        "name": "Boundary completeness",
+        "status": "pass",
+        "detail": "Every selected port and wall must survive meshing; no exposed background patches."
+      },
+      {
+        "name": "inlet mapping",
+        "status": "pass",
+        "detail": "Area error 0.466%; centroid displacement 2.71e-13 m; outward-normal dot 0.9999999999999998."
+      },
+      {
+        "name": "wall mapping",
+        "status": "pass",
+        "detail": "Area error 0.130%; centroid displacement 5.06e-07 m; outward-normal dot not applicable."
+      },
+      {
+        "name": "outlet_1 mapping",
+        "status": "pass",
+        "detail": "Area error 0.462%; centroid displacement 4.18e-08 m; outward-normal dot 1.0000000000000002."
+      },
+      {
+        "name": "outlet_2 mapping",
+        "status": "pass",
+        "detail": "Area error 0.462%; centroid displacement 4.1e-08 m; outward-normal dot 0.9999999999999987."
+      },
+      {
+        "name": "Solver completed",
+        "status": "pass",
+        "detail": "Recorded iteration 600 of 600."
+      },
+      {
+        "name": "Prescribed inlet flow",
+        "status": "pass",
+        "detail": "Measured 1.5707963e-07 m\u00b3/s; prescribed 1.5707963e-07 m\u00b3/s."
+      },
+      {
+        "name": "Mass conservation",
+        "status": "pass",
+        "detail": "Net flow imbalance 0.0000%; limit 0.1%."
+      },
+      {
+        "name": "Pressure-drop stability",
+        "status": "pass",
+        "detail": "Positive inlet-to-outlet drop; final-window variation 0.0000%; limit 0.1%."
+      },
+      {
+        "name": "Outlet flow stability",
+        "status": "pass",
+        "detail": "Largest final-window branch variation 0.0000%; limit 0.1%."
+      },
+      {
+        "name": "Equation residuals",
+        "status": "pass",
+        "detail": "Final initial residuals {'Ux': 1.83496348081e-12, 'Uy': 1.23056616903e-12, 'Uz': 3.97816248728e-13, 'p': 7.49243660026e-11}; limit 1e-5."
+      },
+      {
+        "name": "Outlet direction and backflow",
+        "status": "pass",
+        "detail": "Reverse outlet flows / prescribed inlet: {'outlet_1': 0.0, 'outlet_2': 0.0}; limit 0.1%."
+      },
+      {
+        "name": "Impermeable walls",
+        "status": "pass",
+        "detail": "Absolute wall flux / inlet flow 0; limit 1e-7."
+      },
+      {
+        "name": "Field export",
+        "status": "pass",
+        "detail": "Native case and VTK fields retained."
+      },
+      {
+        "name": "Frozen native inputs",
+        "status": "pass",
+        "detail": "Approved mesh, dictionaries and initial fields remained unchanged."
+      },
+      {
+        "name": "Reproduction agreement",
+        "status": "pass",
+        "detail": "Largest pressure/branch-flow relative difference 0; limit 1e-6."
+      },
+      {
+        "name": "Frozen geometry and study",
+        "status": "pass",
+        "detail": "Source STEP, study and recipe match the executed inputs."
+      }
+    ],
+    "verified": true
+  },
+  "artifacts": {
+    "python-results.xml": "c788488623ec9ccf2b6ddb6dd4d97f12902900ab6accab804e5351d8f343f1ab",
+    "browser-flow.png": "87727b6575269cc58558d24b7e895ae4acb2821ba5a6b51e43dac81136d2d73a",
+    "browser-mesh.png": "c02d174a35b899e431f40b73900799c27451757c935a0c1f4040bf0bfb4be05d",
+    "browser-manifold.zip": "a8493da865ca4290e72f883deeac0d1ff1a40ee4c48c5c5c2f2b85b109c027b4",
+    "browser-import.png": "76c2df582864a307aadade1446bcba9a733fc816c6f5fa1965edec75b4fc7d1d"
+  },
+  "source_hashes": {
+    "src/venturi/process.py": "d25aabb80cbaeab8d23324bd3704260d7481a62153713e7ac27011e2f421b136",
+    "src/venturi/jobs.py": "450b4a817f7627a9580f7e271cf5af3e7bf32618ef63494b66450231c94ad016",
+    "src/venturi/evidence.py": "8bed1f760e4f47c0895a60cedc96b7fd3ea2012d88d9e1eb510237bd1e17ad70",
+    "src/venturi/runner.py": "ebfc7091e2440babbfc1d7c672feca4dcb3f9c40f38ffb66ae568eef6ba71fad",
+    "src/venturi/server.py": "8783ddc3b20afbbc790beccfc7f8a4c55cc31cdbe7536db01d9f3978d3d57f55",
+    "src/venturi/recipes.py": "8265dcb99b41ba0d910970a9a1d4b2892d0488937f170ed979ebe5a43cd45208",
+    "src/venturi/runtime.py": "29b4aa1b4306db1da096a8741e4016efe3661abe4cda311f67ab0d3a1957affa",
+    "src/venturi/foam.py": "8ca84dccab391484784596caaf9a644186c03a56fd024673bad3f68bcb577ca3",
+    "src/venturi/models.py": "4fe80c76efd36ef322a677a1d912f230df21d6c4e9db61aefd0d2cfdb6d0bb23",
+    "src/venturi/artifacts.py": "d33ab3723a349c35e6e5fd7b5f6c29031ece40debca24221f01a80e5129b4dd3",
+    "src/venturi/__init__.py": "056ff415c16cb3aadc6ab788e33e17cd5255b03b282c6bbc6f33cc006509412f",
+    "src/venturi/cli.py": "f29ef5a03902ddef9da4dad3ac63e31094dc738d5de9de07e32fe0d6cdcfdb7c",
+    "src/venturi/geometry.py": "5a1fc04296897bad9c349d6efd336da4cba548d14650c91252e802e4600772b5",
+    "src/venturi/workflows.py": "e8b2c3f85b410ae55e83dab58b62f2117438f42e7394259330f930406bb41f91",
+    "src/venturi/internal.py": "d63ec1420f7d91d4fc3b40ce536ea6ca6020048d9312387d6ef4569b200aa101",
+    "src/venturi/workspace.py": "50d4203ec3b3dbff1411fc4de22ef8cbb9770b229e230554a400a2ec4633eae4",
+    "apps/desktop/src/types.ts": "610b45899d0419a2acb473022215a83e4dd4c3b43acaa357764d91bb44cdcb9b",
+    "apps/desktop/src/App.tsx": "6c09017b3f66b150cf879f32184395c054c5bf9f5b0ccd03a653fcd4dbde7051",
+    "apps/desktop/src/styles.css": "545b524e640fe5580b3d02b8b528a939a526e60eea2b0fae3b296ba29fbb988e",
+    "apps/desktop/src/MeshReview.tsx": "dd082666e8437c113bb2eb5396a45631628b1fac6fb4bb29c81b31a9a784900b",
+    "apps/desktop/src/vite-env.d.ts": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5",
+    "apps/desktop/src/CaseViewer.tsx": "8099ae634ac1094a5dc5f8a4d9704487cb66faf4c93d8301db091db96375c7c2",
+    "apps/desktop/src/FlowSetup.tsx": "3c5cf83e8a958cc591e2c3a06f5ae4ec1510bd87fbc9aa7562d4ebf764f022ad",
+    "apps/desktop/src/Viewer.tsx": "b9b2000b115495096d32b1db533999483903ce6747588aa52a4c44cf9b3bb11a",
+    "apps/desktop/src/main.tsx": "34648b89b5f1de8956750576f7d3ab8ebaa1f54258c1304a4bda5a840248f939",
+    "apps/desktop/src/Annotations.tsx": "9e480636f3063a9e1ad3645a24f5ec9c5a2352979bccaff1838bdfca1beb0971",
+    "tests/test_jobs.py": "33ff0af2a90fc3f8784bd30aad2ad0a5a15916934d284c07fc1840eddb76235c",
+    "tests/test_integration.py": "07013885a376b5448f48cb75886195678d14e490aa6124615da06d5da2423646",
+    "tests/test_geometry.py": "7bf015b3aa0cfb10e840ce204636c3374a5ceecd87d7f99fcd06ec013dd54129",
+    "tests/test_workspace.py": "0f46c513558b89640c91da6ddfe5945748cb1c49614c7cb0496363b39260bba5",
+    "tests/test_runtime.py": "8f821c534a178f2ec81b26b7ea72e3a3915cb06d2c3ea206977d6e07d282cf98",
+    "tests/test_internal.py": "0766b856732161df63073eab4062523db6362b999707663bfc9dfce00d60ce9b",
+    "tests/test_artifacts.py": "68d62b1e98d952c8f3d8081594a0054881e6cdc60e1068cbb4225fd0e92979fc",
+    "tests/test_internal_integration.py": "4c427ef3e695120cb622278d762c194342bf6f54d331cfc30e38429faedb1d5e",
+    "tests/test_inputs.py": "ff869c6a8458aa4f2f8cc8f0559e76f8562af194af873b17a2e0bd1a1328076f",
+    "tests/test_studies.py": "d38e7ffd87b0c1d68e69d5aa474aec7d4c3dd37fb53567a66ef42789fbdedadd",
+    "tests/test_server.py": "1e5562a5e1023fe96371b818375053ade9455519afeab16314a5d2cc8bc3dce0",
+    "tests/test_evidence.py": "d5842c734c5a01c4fad36b5e325ca6dd4931b92afe2fa6783c952906952a325d",
+    "apps/desktop/tests/workbench.spec.ts": "79ae0dd248873fd740f807cfa9e22d8e86681114bbfd40ea9da71ecb890ce5a7",
+    "apps/desktop/playwright.config.ts": "af83fbd4e1c871abe04566f7f6a2b403a98f25d4de30d89aab1a0f812481336f",
+    "apps/desktop/package.json": "87d256175fff4de4b4b461cd921b31caf79f9549931542b77a4dd5aa99eca969",
+    "apps/desktop/package-lock.json": "86083c721bf7e6b14c80704157680cb41885c7aefeea25e7bab31d06b295863d",
+    "apps/desktop/src-tauri/Cargo.toml": "bc4477ef758e7d0304aa7a9395d564a18f9efcc38478f32f9371dfb557845e29",
+    "apps/desktop/src-tauri/Cargo.lock": "7b8a9804e25a3d0a1ca2c763b13cd28e320846c4c624d6229e72738b96ada176",
+    "pyproject.toml": "63173c5acab66e904211884bca98a444aba1d78507b3aab54e86e25b9434a314",
+    "uv.lock": "ed479b2854213be2980845377eee4925409e59fa1752c3a3196ceeea67139c66"
+  },
+  "test_setup_note": "The first full-suite invocation could not create pytest basetemp because its parent was missing. Creating artifacts/milestone-2 corrected the harness invocation; the final 144-test run passed.",
+  "remaining_gates": [
+    "Observed target-user completion without case-file editing",
+    "Native interactive alpha smoke; Windows/macOS and ARM execution qualification",
+    "Independent CFD review and broader customer-CAD/experimental validation",
+    "Release packaging and self-service installation (milestone 4)"
+  ]
+}

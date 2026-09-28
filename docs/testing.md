@@ -167,3 +167,37 @@ duplicate React keys fail the suite.
 See [milestone 1 closeout](milestone-1-closeout.md) for the measured final results,
 clean-install/replay evidence, fixes found during testing, and remaining release
 qualification work.
+
+## Milestone 2 guided desktop alpha
+
+The acceptance contract and observed-user walkthrough are in
+[milestone-2.md](milestone-2.md). Tests use the existing numerical criteria.
+
+```bash
+mkdir -p artifacts/milestone-2
+VENTURI_INTEGRATION=1 uv run pytest -q --basetemp=artifacts/milestone-2/python \
+  --junitxml=artifacts/milestone-2/python-results.xml
+cd apps/desktop
+npm run test:e2e
+npm run tauri build -- --no-bundle
+```
+
+Use a fresh `--basetemp` for independent evidence retention; pytest replaces its
+own base directory. Create its parent first. The browser harness creates a fresh
+worker store for each invocation under `artifacts/e2e/session-*`.
+
+`test_workspace.py` covers worker-owned study restoration after API restart,
+optimistic revision conflicts and immutable history, geometry/source changes,
+recipe/resource rejections before execution, repeatable edge IDs, annotations
+with camera and world anchors, cross-revision reference rejection, authenticated
+artifact listing, text bounds, path/symlink refusal, file differences and frozen
+desktop context. Existing runtime tests enforce time, memory and disk limits.
+
+The five browser scenarios cover authentication; CAD selection and reference
+solve/export; cancellation/retry; a full real manifold study with durable save,
+edge annotation, resources, stale-input gates across reload, case inspection/diff
+and export; and stale in-flight review rejection, a real one-second budget stop,
+and API disconnect/reconnect without submission. The manifold scenario also
+retains the blank-render mesh-approval regression. No solver outcomes are mocked.
+Screenshots and the portable manifold export are under `artifacts/milestone-2`.
+Automated browser completion does not count as an observed human pilot.

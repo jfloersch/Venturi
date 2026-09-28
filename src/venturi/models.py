@@ -87,6 +87,11 @@ class BoundarySelection(StrictModel):
     assignments: dict[str, Literal["inlet", "outlet", "wall"]]
 
 
+class DesktopStudyRef(StrictModel):
+    id: str = Field(pattern=r"^[0-9a-f]{32}$")
+    revision: int = Field(ge=1)
+
+
 class RunRequest(StrictModel):
     kind: Literal["reference", "cad_mesh", "internal_mesh", "internal_flow"]
     request_id: str = Field(pattern=r"^[a-zA-Z0-9_-]{8,80}$")
@@ -96,6 +101,7 @@ class RunRequest(StrictModel):
     approved_mesh_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     retry_of: str | None = Field(default=None, pattern=r"^[a-zA-Z0-9_-]{1,80}$")
     reason: str = Field(default="User requested execution", min_length=1, max_length=500)
+    desktop_study: DesktopStudyRef | None = None
 
     @model_validator(mode="after")
     def compatible(self):

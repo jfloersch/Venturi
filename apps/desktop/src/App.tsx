@@ -20,8 +20,10 @@ import {
   XCircle,
 } from "lucide-react";
 import { Viewer } from "./Viewer";
-import { FlowSetup } from "./FlowSetup";
+import { FlowSetup, loadStudyValues, studyFromValues } from "./FlowSetup";
 import { MeshReview } from "./MeshReview";
+import { Annotations } from "./Annotations";
+import { CaseViewer } from "./CaseViewer";
 import type {
   Check as EvidenceCheck,
   Diagnostics,
@@ -30,6 +32,9 @@ import type {
   Run,
   RunKind,
   InternalStudy,
+  StudyRecord,
+  StudySave,
+  Camera,
 } from "./types";
 
 const API = import.meta.env.VITE_VENTURI_API || "http://127.0.0.1:8765";
@@ -43,6 +48,28 @@ const runLabel = (kind: RunKind) =>
     internal_mesh: "STEP mesh review",
     internal_flow: "STEP flow result",
   })[kind];
+
+function studyIdentity(study: InternalStudy | null | undefined): string {
+  if (!study) return "";
+  return JSON.stringify({
+    name: study.name,
+    geometry: study.selection.geometry_hash,
+    assignments: Object.entries(study.selection.assignments).sort(([a], [b]) =>
+      a.localeCompare(b),
+    ),
+    flow: study.flow_rate_m3_s,
+    density: study.density_kg_m3,
+    viscosity: study.dynamic_viscosity_pa_s,
+    cell: study.mesh.cell_size_m,
+    cells: study.mesh.maximum_cells ?? 250000,
+    meshTime: study.mesh.timeout_seconds ?? 600,
+    iterations: study.max_iterations ?? 600,
+    solveTime: study.timeout_seconds ?? 900,
+    wall: study.resources?.wall_time_seconds ?? 2400,
+    memory: study.resources?.memory_mb ?? 4096,
+    disk: study.resources?.disk_mb ?? 2048,
+  });
+}
 
 function CheckRow({ item }: { item: EvidenceCheck }) {
   return (
@@ -139,15 +166,38 @@ export function App() {
   const [assignments, setAssignments] = useState<Record<string, Role>>({});
   const [selected, setSelected] = useState<string | null>(null);
   const [runs, setRuns] = useState<Run[]>([]);
-  const [runId, setRunId] = useState<string | null>(null);
+  const [runId, setRunId] = useState<string | null>(() =>
+    sessionStorage.getItem("venturi-run"),
+  );
   const [error, setError] = useState("");
   const [connecting, setConnecting] = useState(false);
   const [busy, setBusy] = useState(false);
   const [dirty, setDirty] = useState(false);
-  const [tab, setTab] = useState<"geometry" | "evidence">("geometry");
+  const [tab, setTab] = useState<"geometry" | "evidence">(() =>
+    sessionStorage.getItem("venturi-tab") === "evidence"
+      ? "evidence"
+      : "geometry",
+  );
   const [showConnection, setShowConnection] = useState(false);
+  const [offline, setOffline] = useState(false);
+  const [studies, setStudies] = useState<StudyRecord[]>([]);
+  const [record, setRecord] = useState<StudyRecord | null>(null);
+  const [draft, setDraft] = useState<InternalStudy | null>(null);
+  const [camera, setCamera] = useState<Camera | null>(null);
+  const [restoreCamera, setRestoreCamera] = useState<Camera | null>(null);
+  const [openGeneration, setOpenGeneration] = useState(0);
+  const [caseOpen, setCaseOpen] = useState(false);
   const run = runs.find((r) => r.id === runId) || runs[0];
   const hasActive = runs.some(active);
+  const currentStudy =
+    !!run &&
+    (!run.kind.startsWith("internal_") ||
+      (!!draft &&
+        !dirty &&
+        geometry?.geometry_hash === draft.selection.geometry_hash &&
+        studyIdentity(draft) ===
+          studyIdentity(run.request?.study as InternalStudy)));
+  const shownStudy = run?.request?.study as InternalStudy | undefined;
   const face = geometry?.faces.find((f) => f.id === selected);
   const studyPipe =
     tab === "evidence" && run?.kind === "reference"
@@ -212,22 +262,52 @@ export function App() {
     let disposed = false;
     setConnecting(true);
     setError("");
-    Promise.all([api("/diagnostics"), api("/geometry"), api("/runs")])
-      .then(([d, g, r]: [Diagnostics, Geometry, Run[]]) => {
-        if (disposed) return;
-        if (d.protocol_version !== protocol)
-          throw new Error(
-            "Worker protocol differs from this desktop. Install matching versions.",
+    Promise.all([
+      api("/diagnostics"),
+      api("/geometry"),
+      api("/runs"),
+      api("/workspace"),
+    ])
+      .then(
+        ([d, g, r, workspace]: [
+          Diagnostics,
+          Geometry,
+          Run[],
+          { studies: StudyRecord[]; active_id: string | null },
+        ]) => {
+          if (disposed) return;
+          if (d.protocol_version !== protocol)
+            throw new Error(
+              "Worker protocol differs from this desktop. Install matching versions.",
+            );
+          setDiagnostics(d);
+          setOffline(false);
+          setStudies(workspace.studies);
+          const current =
+            workspace.studies.find(
+              (s) =>
+                s.id === workspace.active_id &&
+                s.study.selection.geometry_hash === g.geometry_hash,
+            ) || null;
+          setRecord(current);
+          setDraft(
+            g.imported
+              ? studyFromValues(
+                  loadStudyValues(g, current),
+                  g,
+                  g.selection.assignments,
+                )
+              : null,
           );
-        setDiagnostics(d);
-        setGeometry(g);
-        setAssignments(g.selection.assignments);
-        setSelected(g.faces[0]?.id || null);
-        setRuns(r);
-        setDirty(false);
-        setShowConnection(false);
-        sessionStorage.setItem("venturi-token", token);
-      })
+          setGeometry(g);
+          setAssignments(g.selection.assignments);
+          setSelected(g.faces[0]?.id || null);
+          setRuns(r);
+          setDirty(false);
+          setShowConnection(false);
+          sessionStorage.setItem("venturi-token", token);
+        },
+      )
       .catch((e) => {
         if (!disposed) {
           setError(String(e));
@@ -247,12 +327,28 @@ export function App() {
     const id = window.setInterval(
       () =>
         api("/runs")
-          .then(setRuns)
-          .catch((e) => setError(`Worker connection lost: ${String(e)}`)),
+          .then((r) => {
+            setRuns(r);
+            setOffline(false);
+            setError((old) =>
+              old.startsWith("Worker connection lost:") ? "" : old,
+            );
+          })
+          .catch((e) => {
+            setOffline(true);
+            setError(
+              `Worker connection lost: ${String(e)}. Saved runs will reconnect automatically.`,
+            );
+          }),
       1500,
     );
     return () => window.clearInterval(id);
   }, [diagnostics, api]);
+
+  useEffect(() => {
+    sessionStorage.setItem("venturi-tab", tab);
+    if (runId) sessionStorage.setItem("venturi-run", runId);
+  }, [tab, runId]);
 
   async function action(operation: () => Promise<void>) {
     setBusy(true);
@@ -291,23 +387,29 @@ export function App() {
       setTab("evidence");
     });
   }
-  async function download() {
+  async function download(path?: string) {
     if (!run) return;
     await action(async () => {
-      const response = await fetch(`${API}/v1/runs/${run.id}/export`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await fetch(
+        `${API}/v1/runs/${run.id}/${path ? `files/${path.split("/").map(encodeURIComponent).join("/")}` : "export"}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
       if (!response.ok)
         throw new Error(
           "Could not export this run. Wait for execution to finish.",
         );
-      const filename = `venturi-${run.id.slice(0, 8)}.zip`;
+      const filename =
+        path?.split("/").at(-1) || `venturi-${run.id.slice(0, 8)}.zip`;
       if ("__TAURI_INTERNALS__" in window) {
         const { save } = await import("@tauri-apps/plugin-dialog");
         const { writeFile } = await import("@tauri-apps/plugin-fs");
         const destination = await save({
           defaultPath: filename,
-          filters: [{ name: "Venturi run archive", extensions: ["zip"] }],
+          filters: path
+            ? undefined
+            : [{ name: "Venturi run archive", extensions: ["zip"] }],
         });
         if (destination)
           await writeFile(
@@ -343,6 +445,11 @@ export function App() {
   }
 
   function displayGeometry(g: Geometry) {
+    setRecord(null);
+    setDraft(null);
+    setCamera(null);
+    setRestoreCamera(null);
+    setOpenGeneration((n) => n + 1);
     setGeometry(g);
     setAssignments(g.selection.assignments);
     setSelected(g.faces[0]?.id || null);
@@ -374,24 +481,56 @@ export function App() {
       displayGeometry(value);
     });
   }
-  async function buildInternalMesh(study: InternalStudy) {
+  async function saveStudy(value: StudySave): Promise<StudyRecord> {
+    if (dirty) await save();
+    const saved: StudyRecord = await api("/studies", {
+      method: "POST",
+      body: JSON.stringify({
+        ...value,
+        id: record?.id || null,
+        expected_revision: record?.revision || 0,
+      }),
+    });
+    setRecord(saved);
+    setDraft(saved.study);
+    setStudies((old) => [saved, ...old.filter((s) => s.id !== saved.id)]);
+    return saved;
+  }
+  async function openStudy(id: string) {
     await action(async () => {
-      if (dirty) await save();
+      const value = await api(`/studies/${id}/open`, { method: "POST" });
+      displayGeometry(value.geometry);
+      setRecord(value.record);
+      setDraft(value.record.study);
+      localStorage.removeItem(
+        `venturi-alpha-draft-${value.geometry.geometry_hash}-${id}`,
+      );
+    });
+  }
+  async function buildInternalMesh(payload: StudySave) {
+    setBusy(true);
+    setError("");
+    try {
+      const saved = await saveStudy(payload);
       const value: Run = await api("/runs", {
         method: "POST",
         body: JSON.stringify({
           kind: "internal_mesh",
           request_id: crypto.randomUUID(),
-          study,
+          study: saved.study,
+          desktop_study: { id: saved.id, revision: saved.revision },
         }),
       });
       setRuns((old) => [value, ...old.filter((r) => r.id !== value.id)]);
       setRunId(value.id);
       setTab("evidence");
-    });
+    } finally {
+      setBusy(false);
+    }
   }
   async function approveMesh() {
-    if (!run || run.kind !== "internal_mesh") return;
+    if (!run || run.kind !== "internal_mesh" || !currentStudy || offline)
+      return;
     await action(async () => {
       const value: Run = await api("/runs", {
         method: "POST",
@@ -399,6 +538,7 @@ export function App() {
           kind: "internal_flow",
           request_id: crypto.randomUUID(),
           study: run.request?.study,
+          desktop_study: run.request?.desktop_study,
           mesh_run_id: run.id,
           approved_mesh_hash: run.result?.mesh_hash,
           reason:
@@ -428,7 +568,7 @@ export function App() {
           </div>
           <div>
             <strong>First principles</strong>
-            <span>Milestone 1b · STEP to report</span>
+            <span>Milestone 2 · Guided desktop alpha</span>
           </div>
         </div>
         <nav aria-label="Workbench navigation">
@@ -450,6 +590,26 @@ export function App() {
           </button>
         </nav>
         <div className="sidebar-divider" />
+        <div className="workspace-label">SAVED STUDIES</div>
+        <div className="saved-studies">
+          {studies.length ? (
+            studies.map((s) => (
+              <button
+                key={s.id}
+                disabled={busy || hasActive || offline}
+                onClick={() => openStudy(s.id)}
+                className={record?.id === s.id ? "selected" : ""}
+              >
+                <strong>{s.study.name}</strong>
+                <small>
+                  Revision {s.revision} · {s.profile}
+                </small>
+              </button>
+            ))
+          ) : (
+            <p>Save a study to reopen it here.</p>
+          )}
+        </div>
         <div className="workspace-label">
           RECENT RUNS <span>{runs.length.toString().padStart(2, "0")}</span>
         </div>
@@ -491,7 +651,7 @@ export function App() {
             <PlugZap size={15} />
             Worker connection
           </button>
-          <small>VENTURI / DEVELOPMENT BUILD 0.2.0</small>
+          <small>VENTURI / DEVELOPMENT BUILD 0.3.0</small>
         </div>
       </aside>
       <main>
@@ -501,10 +661,10 @@ export function App() {
             <span>First principles</span>
           </div>
           <div
-            className={`connection-status ${diagnostics ? "connected" : ""}`}
+            className={`connection-status ${diagnostics && !offline ? "connected" : ""}`}
           >
             <span />
-            {diagnostics
+            {diagnostics && !offline
               ? `${diagnostics.is_wsl ? "WSL" : diagnostics.platform} worker connected`
               : "Worker disconnected"}
           </div>
@@ -529,7 +689,7 @@ export function App() {
               </p>
             </div>
             <span className="milestone-badge">
-              M1b <span>PREVIEW</span>
+              M2 <span>ALPHA</span>
             </span>
           </div>
           {error && (
@@ -589,6 +749,32 @@ export function App() {
           )}
           {diagnostics && (
             <>
+              <ol className="workflow-steps" aria-label="Study workflow">
+                {[
+                  "Import fluid volume",
+                  "Assign ports & study",
+                  "Review mesh",
+                  "Solve & inspect",
+                ].map((label, i) => (
+                  <li
+                    key={label}
+                    className={
+                      (
+                        tab === "geometry"
+                          ? i < 2
+                          : run?.kind === "internal_mesh"
+                            ? i === 2
+                            : i === 3
+                      )
+                        ? "current"
+                        : ""
+                    }
+                  >
+                    <span>{i + 1}</span>
+                    {label}
+                  </li>
+                ))}
+              </ol>
               <div className="summary-strip">
                 <div>
                   <Cpu size={17} />
@@ -684,6 +870,8 @@ export function App() {
                         assignments={assignments}
                         selected={selected}
                         onSelect={setSelected}
+                        onCamera={setCamera}
+                        restoreCamera={restoreCamera}
                       />
                       <div className="geometry-footer">
                         <span>
@@ -768,12 +956,60 @@ export function App() {
                       </button>
                     </div>
                   </section>
+                  <div className="geometry-dimensions">
+                    Source units: {geometry.source_units.join(", ")} · Converted
+                    to metres · Bounding dimensions:{" "}
+                    {[0, 1, 2]
+                      .map((i) =>
+                        (
+                          (geometry.bounds_m[i + 3] - geometry.bounds_m[i]) *
+                          1000
+                        ).toFixed(3),
+                      )
+                      .join(" × ")}{" "}
+                    mm · Fluid volume{" "}
+                    {(geometry.volume_m3 * 1e9).toPrecision(6)} mm³
+                  </div>
+                  <Annotations
+                    key={geometry.geometry_hash}
+                    geometry={geometry}
+                    selected={selected}
+                    camera={camera}
+                    api={api}
+                    onSelect={setSelected}
+                    onRestore={setRestoreCamera}
+                  />
+                  {geometry.imported && (
+                    <button
+                      className="secondary new-study"
+                      disabled={busy || hasActive}
+                      onClick={() => {
+                        setRecord(null);
+                        setDraft(null);
+                        localStorage.removeItem(
+                          `venturi-alpha-draft-${geometry.geometry_hash}-new`,
+                        );
+                        setOpenGeneration((n) => n + 1);
+                      }}
+                    >
+                      New study on this geometry
+                    </button>
+                  )}
                   {geometry.imported && (
                     <FlowSetup
-                      key={geometry.geometry_hash}
+                      key={`${geometry.geometry_hash}-${record?.id || "new"}-${openGeneration}`}
                       geometry={geometry}
                       assignments={assignments}
-                      disabled={busy || hasActive || !diagnostics.solver_ready}
+                      disabled={
+                        busy ||
+                        hasActive ||
+                        offline ||
+                        !diagnostics.solver_ready
+                      }
+                      record={record}
+                      api={api}
+                      onSave={saveStudy}
+                      onDraft={setDraft}
                       onBuild={buildInternalMesh}
                     />
                   )}
@@ -858,7 +1094,7 @@ export function App() {
                           <button
                             className="secondary"
                             disabled={busy}
-                            onClick={download}
+                            onClick={() => download()}
                           >
                             <ArrowDownToLine size={16} />
                             Export complete run
@@ -874,8 +1110,27 @@ export function App() {
                           </p>
                         </div>
                       )}
+                      {run.kind.startsWith("internal_") && (
+                        <div
+                          className={`study-currency ${currentStudy ? "current" : "historical"}`}
+                          role="status"
+                        >
+                          {currentStudy
+                            ? "Current study inputs"
+                            : "Historical inputs — the current draft or geometry differs. Return to the study and build a new mesh for changes."}
+                        </div>
+                      )}
                       {run.error && (
-                        <pre className="run-error">{run.error}</pre>
+                        <div className="recovery">
+                          <pre className="run-error">{run.error}</pre>
+                          <p>
+                            This attempt stopped. Inspect its checks and logs.
+                            For resource limits, revise the study budget; for
+                            mesh or port failures, review geometry and cell
+                            size. A retry preserves the failed attempt’s
+                            original settings.
+                          </p>
+                        </div>
                       )}
                       {!active(run) &&
                         run.status !== "passed" &&
@@ -919,6 +1174,42 @@ export function App() {
                           </p>
                         </details>
                       )}
+                      {run.desktop_brief && (
+                        <div className="execution-budget">
+                          <h3>{run.desktop_brief.question}</h3>
+                          <p>
+                            Fluid properties:{" "}
+                            {run.desktop_brief.material_source} · Saved study
+                            revision {run.desktop_brief.revision}.
+                          </p>
+                        </div>
+                      )}
+                      {run.kind.startsWith("internal_") &&
+                        shownStudy?.resources && (
+                          <div className="execution-budget">
+                            Saved execution limits:{" "}
+                            {shownStudy.resources.wall_time_seconds} s ·{" "}
+                            {shownStudy.resources.memory_mb} MiB memory ·{" "}
+                            {shownStudy.resources.disk_mb} MiB disk · one serial
+                            CPU.
+                          </div>
+                        )}
+                      <details
+                        className="case-disclosure"
+                        open={caseOpen}
+                        onToggle={(e) => setCaseOpen(e.currentTarget.open)}
+                      >
+                        <summary>Inspect native case, logs & downloads</summary>
+                        {caseOpen && (
+                          <CaseViewer
+                            key={run.id}
+                            run={run}
+                            runs={runs}
+                            api={api}
+                            onDownload={download}
+                          />
+                        )}
+                      </details>
                       {run.result && (
                         <>
                           {run.kind === "internal_mesh" &&
@@ -927,7 +1218,9 @@ export function App() {
                                 key={run.id}
                                 run={run}
                                 api={api}
-                                disabled={busy || hasActive}
+                                disabled={
+                                  busy || hasActive || offline || !currentStudy
+                                }
                                 onApprove={approveMesh}
                               />
                             )}

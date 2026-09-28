@@ -7,7 +7,7 @@ import vtkPolyData from "@kitware/vtk.js/Common/DataModel/PolyData";
 import vtkCellPicker from "@kitware/vtk.js/Rendering/Core/CellPicker";
 import vtkPlane from "@kitware/vtk.js/Common/DataModel/Plane";
 import { Crosshair, Layers3, RotateCcw } from "lucide-react";
-import type { Geometry, Role } from "./types";
+import type { Camera, Geometry, Role } from "./types";
 
 const colors: Record<Role, [number, number, number]> = {
   inlet: [0.15, 0.76, 0.65],
@@ -22,6 +22,8 @@ export function Viewer({
   onSelect,
   mesh = false,
   onRenderReady,
+  onCamera,
+  restoreCamera,
 }: {
   geometry: Geometry;
   assignments: Record<string, Role>;
@@ -29,6 +31,8 @@ export function Viewer({
   onSelect: (id: string) => void;
   mesh?: boolean;
   onRenderReady?: (ready: boolean) => void;
+  onCamera?: (camera: Camera) => void;
+  restoreCamera?: Camera | null;
 }) {
   const container = useRef<HTMLDivElement>(null);
   const scene = useRef<{
@@ -40,6 +44,11 @@ export function Viewer({
       mapper: ReturnType<typeof vtkMapper.newInstance>;
     }[];
     plane: ReturnType<typeof vtkPlane.newInstance>;
+    camera: ReturnType<
+      ReturnType<typeof vtkGenericRenderWindow.newInstance>["getRenderer"]
+    >["getActiveCamera"] extends () => infer T
+      ? T
+      : never;
   } | null>(null);
   const selectRef = useRef(onSelect);
   selectRef.current = onSelect;
@@ -47,6 +56,12 @@ export function Viewer({
   readyRef.current = onRenderReady;
   const [clip, setClip] = useState(false);
   const [transparent, setTransparent] = useState(false);
+  const [isolate, setIsolate] = useState(false);
+  const [showEdges, setShowEdges] = useState(false);
+  const [axis, setAxis] = useState(0);
+  const [cut, setCut] = useState(50);
+  const cameraRef = useRef(onCamera);
+  cameraRef.current = onCamera;
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -82,6 +97,36 @@ export function Viewer({
         renderer.addActor(actor);
         return { id: face.id, actor, mapper, data };
       });
+      for (const edge of geometry.edges || []) {
+        const data = vtkPolyData.newInstance();
+        data.getPoints().setData(Float32Array.from(edge.points), 3);
+        const count = edge.points.length / 3;
+        data
+          .getLines()
+          .setData(
+            Uint32Array.from([
+              count,
+              ...Array.from({ length: count }, (_, i) => i),
+            ]),
+          );
+        const mapper = vtkMapper.newInstance({ scalarVisibility: false });
+        mapper.setInputData(data);
+        const actor = vtkActor.newInstance();
+        actor.setMapper(mapper);
+        actor.getProperty().setColor(1, 0.85, 0.45);
+        actor.getProperty().setLineWidth(3);
+        actor.setVisibility(false);
+        renderer.addActor(actor);
+        actors.push({ id: edge.id, actor, mapper, data });
+      }
+      const camera = renderer.getActiveCamera();
+      const cameraSubscription = camera.onModified(() =>
+        cameraRef.current?.({
+          position: [...camera.getPosition()],
+          focal_point: [...camera.getFocalPoint()],
+          view_up: [...camera.getViewUp()],
+        }),
+      );
       const reset = () => {
         const camera = renderer.getActiveCamera();
         const center = [0, 1, 2].map(
@@ -117,11 +162,13 @@ export function Viewer({
         reset,
         actors,
         plane,
+        camera,
       };
       cleanup = () => {
         scene.current = null;
         resize.disconnect();
         subscription.unsubscribe();
+        cameraSubscription.unsubscribe();
         picker.delete();
         actors.forEach(({ actor, mapper, data }) => {
           renderer.removeActor(actor);
@@ -180,6 +227,16 @@ export function Viewer({
   useEffect(() => {
     scene.current?.actors.forEach(({ id, actor, mapper }) => {
       const role = assignments[id] || "wall";
+      const edge = id.startsWith("edge_");
+      actor.setVisibility(
+        edge
+          ? showEdges || id === selected
+          : !isolate ||
+              id === selected ||
+              !!geometry.edges
+                ?.find((e) => e.id === selected)
+                ?.adjacent_faces.includes(id),
+      );
       const [red, green, blue] = colors[role];
       const highlight = id === selected ? 0.2 : 0;
       actor
@@ -190,11 +247,48 @@ export function Viewer({
           blue + highlight * (1 - blue),
         );
       actor.getProperty().setOpacity(transparent && role === "wall" ? 0.24 : 1);
+      if (edge) {
+        actor.getProperty().setColor(id === selected ? 1 : 0.8, 0.8, 0.2);
+        actor.getProperty().setOpacity(1);
+      }
       mapper.removeAllClippingPlanes();
-      if (clip && scene.current) mapper.addClippingPlane(scene.current.plane);
+      if (clip && scene.current) {
+        const normal: [number, number, number] = [0, 0, 0];
+        normal[axis] = 1;
+        scene.current.plane.setNormal(...normal);
+        const origin = [0, 1, 2].map(
+          (i) =>
+            geometry.bounds_m[i] +
+            (geometry.bounds_m[i + 3] - geometry.bounds_m[i]) *
+              (i === axis ? cut / 100 : 0.5),
+        );
+        scene.current.plane.setOrigin(...(origin as [number, number, number]));
+        mapper.addClippingPlane(scene.current.plane);
+      }
     });
     scene.current?.render();
-  }, [assignments, selected, clip, transparent]);
+  }, [
+    geometry,
+    assignments,
+    selected,
+    clip,
+    transparent,
+    isolate,
+    showEdges,
+    axis,
+    cut,
+  ]);
+
+  useEffect(() => {
+    if (!restoreCamera || !scene.current) return;
+    const camera = scene.current.camera;
+    camera.setPosition(...(restoreCamera.position as [number, number, number]));
+    camera.setFocalPoint(
+      ...(restoreCamera.focal_point as [number, number, number]),
+    );
+    camera.setViewUp(...(restoreCamera.view_up as [number, number, number]));
+    scene.current.render();
+  }, [restoreCamera]);
 
   return (
     <div className="viewer-wrap">
@@ -206,6 +300,25 @@ export function Viewer({
         </span>
       </div>
       <div className="viewer-tools">
+        <button
+          className={isolate ? "active" : ""}
+          disabled={!selected}
+          onClick={() => setIsolate(!isolate)}
+          aria-label="Isolate selected reference"
+          title="Isolate selected reference"
+        >
+          I
+        </button>
+        {!!geometry.edges?.length && (
+          <button
+            className={showEdges ? "active" : ""}
+            onClick={() => setShowEdges(!showEdges)}
+            aria-label="Show CAD edges"
+            title="Show CAD edges"
+          >
+            E
+          </button>
+        )}
         <button
           className={transparent ? "active" : ""}
           onClick={() => setTransparent(!transparent)}
@@ -230,6 +343,31 @@ export function Viewer({
           <RotateCcw size={17} />
         </button>
       </div>
+      {clip && (
+        <div className="clip-controls">
+          <label>
+            Cut axis{" "}
+            <select
+              value={axis}
+              onChange={(e) => setAxis(Number(e.target.value))}
+            >
+              <option value={0}>X</option>
+              <option value={1}>Y</option>
+              <option value={2}>Z</option>
+            </select>
+          </label>
+          <label>
+            Cut position{" "}
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={cut}
+              onChange={(e) => setCut(Number(e.target.value))}
+            />
+          </label>
+        </div>
+      )}
       <div className="viewer-legend">
         <span>
           <i style={{ background: "#26c2a6" }} />

@@ -62,6 +62,8 @@ def initialize_attempt(folder: Path, request: RunRequest, cad: dict | None = Non
         shutil.copyfile(cad["source"], folder / "source.step")
         write_json(folder / "geometry.json", cad["geometry"])
         write_json(folder / "selection.json", cad["selection"])
+        if cad.get("desktop_context"):
+            write_json(folder / "desktop-context.json", cad["desktop_context"])
         if cad.get("approved_mesh"):
             shutil.copytree(
                 cad["approved_mesh"],
@@ -83,6 +85,11 @@ def initialize_attempt(folder: Path, request: RunRequest, cad: dict | None = Non
         "reason": request.reason,
         "process": None,
     }
+    if cad and cad.get("desktop_context"):
+        record = cad["desktop_context"]["study"]
+        state["desktop_brief"] = {
+            k: record[k] for k in ("id", "revision", "question", "material_source", "profile")
+        }
     write_json(folder / "status.json", state)
     event(folder, "attempt_created", study_hash=state["study_hash"], reason=request.reason)
     return state
@@ -277,6 +284,7 @@ class RunManager:
                     or original.geometry_hash != request.geometry_hash
                     or original.mesh_run_id != request.mesh_run_id
                     or original.approved_mesh_hash != request.approved_mesh_hash
+                    or original.desktop_study != request.desktop_study
                 ):
                     raise ValueError("Retry must preserve the original study and geometry.")
                 if request.kind != "reference":
@@ -286,6 +294,8 @@ class RunManager:
                         "geometry": read_json(source / "geometry.json"),
                         "selection": read_json(source / "selection.json"),
                     }
+                    if (source / "desktop-context.json").exists():
+                        cad["desktop_context"] = read_json(source / "desktop-context.json")
                     if request.kind == "internal_flow":
                         cad["approved_mesh"] = source / "approved-mesh"
             if request.kind.startswith("internal_"):
@@ -321,6 +331,26 @@ class RunManager:
                             "Mesh approval is stale or belongs to different study inputs."
                         )
                     cad["approved_mesh"] = mesh
+                if request.desktop_study and not request.retry_of:
+                    ref = request.desktop_study
+                    record_path = (
+                        self.storage / "studies" / ref.id / "revisions" / f"{ref.revision}.json"
+                    )
+                    if not record_path.is_file():
+                        raise ValueError("Saved desktop study revision not found.")
+                    record = read_json(record_path)
+                    if record["study_hash"] != canonical_hash(request.study.model_dump()):
+                        raise ValueError("Desktop study revision differs from execution inputs.")
+                    notes = (
+                        self.storage
+                        / "geometry"
+                        / request.study.selection.geometry_hash
+                        / "annotations.json"
+                    )
+                    cad["desktop_context"] = {
+                        "study": record,
+                        "annotations": read_json(notes) if notes.exists() else None,
+                    }
             folder = self.runs / uuid.uuid4().hex
             initialize_attempt(folder, request, cad)
             try:

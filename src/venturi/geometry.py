@@ -60,7 +60,7 @@ def read_step_shape(path: Path):
 def inspect_step(path: Path) -> dict:
     from OCP.Bnd import Bnd_Box
     from OCP.BRep import BRep_Tool
-    from OCP.BRepAdaptor import BRepAdaptor_Surface
+    from OCP.BRepAdaptor import BRepAdaptor_Curve, BRepAdaptor_Surface
     from OCP.BRepBndLib import BRepBndLib
     from OCP.BRepCheck import BRepCheck_Analyzer
     from OCP.BRepGProp import BRepGProp
@@ -116,6 +116,9 @@ def inspect_step(path: Path) -> dict:
     geometry_hash = file_hash(path)
     faces = []
     points = []
+    edge_map = TopTools_IndexedMapOfShape()
+    TopExp.MapShapes_s(shape, TopAbs_EDGE, edge_map)
+    edge_faces = {i: [] for i in range(1, edge_map.Extent() + 1)}
     explorer = TopExp_Explorer(shape, TopAbs_FACE)
     index = 0
     while explorer.More():
@@ -135,6 +138,10 @@ def inspect_step(path: Path) -> dict:
             "face_"
             + hashlib.sha256(json.dumps(signature, sort_keys=True).encode()).hexdigest()[:16]
         )
+        face_edges = TopTools_IndexedMapOfShape()
+        TopExp.MapShapes_s(face, TopAbs_EDGE, face_edges)
+        for i in range(1, face_edges.Extent() + 1):
+            edge_faces[edge_map.FindIndex(face_edges.FindKey(i))].append(face_id)
         perimeter = GProp_GProps()
         BRepGProp.LinearProperties_s(face, perimeter)
         adaptor = BRepAdaptor_Surface(face)
@@ -176,6 +183,36 @@ def inspect_step(path: Path) -> dict:
     # Faces belonging to shells outside the one solid are not supported either.
     if not faces:
         raise ValueError("STEP contains no selectable faces.")
+    edges = []
+    for i in range(1, edge_map.Extent() + 1):
+        edge = TopoDS.Edge_s(edge_map.FindKey(i))
+        if BRep_Tool.Degenerated_s(edge):
+            continue
+        curve = BRepAdaptor_Curve(edge)
+        properties = GProp_GProps()
+        BRepGProp.LinearProperties_s(edge, properties)
+        center = properties.CentreOfMass()
+        signature = {
+            "index": i - 1,
+            "length_m": properties.Mass(),
+            "centroid_m": [center.X(), center.Y(), center.Z()],
+            "curve_type": str(curve.GetType()).split(".")[-1],
+            "adjacent_faces": edge_faces[i],
+        }
+        samples = []
+        for j in range(65):
+            point = curve.Value(
+                curve.FirstParameter() + (curve.LastParameter() - curve.FirstParameter()) * j / 64
+            )
+            samples.extend([point.X(), point.Y(), point.Z()])
+        edges.append(
+            {
+                "id": "edge_"
+                + hashlib.sha256(json.dumps(signature, sort_keys=True).encode()).hexdigest()[:16],
+                **signature,
+                "points": samples,
+            }
+        )
     return {
         "schema_version": 1,
         "geometry_hash": geometry_hash,
@@ -185,6 +222,7 @@ def inspect_step(path: Path) -> dict:
         "volume_m3": props.Mass(),
         "points": points,
         "faces": faces,
+        "edges": edges,
     }
 
 

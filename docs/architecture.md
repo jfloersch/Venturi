@@ -1,4 +1,4 @@
-# Architecture decisions — milestones 1a and 1b
+# Architecture decisions — milestones 1 and 2
 
 ## Shared desktop, independent numerical worker
 
@@ -119,3 +119,40 @@ hashes to the existing solver/library fingerprint. Replay compares these and the
 recipe, regenerates all native inputs, refuses modified dictionaries even if a
 bundle is rehashed, and compares pressure plus every branch flow. The 1a recipe,
 runtime fingerprint and native compiler remain compatible with earlier exports.
+
+
+## Guided desktop alpha persistence and inspection
+
+Milestone 2 adds authenticated, additive worker-v1 endpoints. `POST /v1/studies/plan`
+normalizes the existing internal study, checks source/ports/Reynolds/resolution and
+background-grid bounds, and returns an explicitly uncalibrated geometric cell
+range. It does not launch a job. `POST /v1/studies` writes immutable revisions and
+an atomic current pointer under a workspace lock. Expected-revision checks prevent
+lost updates between windows. `GET /v1/workspace` lists saved studies;
+`POST /v1/studies/{id}/open` restores the stored geometry and assignments after
+checking the source hash. Browser-local drafts are separate from these durable
+records. Presentation preference changes visibility, never acceptance criteria.
+
+CAD metadata now includes exact-kernel edge lengths, centroids, adjacent faces and
+sampled edge polylines. Existing face IDs and source hashes remain compatible.
+Annotations save entity metadata, a world-space anchor and camera against the
+exact STEP hash, with their own optimistic revision. New geometry starts with
+new references; no nearest-face or nearest-edge assignment occurs.
+
+A run can cite a saved desktop-study ID and revision. Admission compares the
+canonical numerical study with that revision; attempt creation freezes the brief,
+material source, preference and annotations in `desktop-context.json`. Those
+files are sealed and exported with the case. Retries retain the original context.
+No numerical compiler, physics recipe or acceptance threshold is changed.
+
+The read-only viewer inventories each run and exposes bounded UTF-8 text previews
+(512 KiB), hashes of the previewed bytes, and unified same-path file differences.
+Path traversal and symbolic links are rejected. Large/binary files remain
+available through explicit artifact or full-run downloads. Logs can be refreshed
+while an attempt runs. React escapes file text; it never executes or edits it.
+
+Review responses are associated with their submitted inputs, so a delayed response
+cannot approve a newer draft. The UI compares draft inputs with the mesh study,
+requires a rendered mesh and preserves the worker's exact mesh/study/runtime
+binding. Reopening an API session restores attempts without resubmission. The
+active tab/run survives a browser reload; drafts still invalidate old approvals.

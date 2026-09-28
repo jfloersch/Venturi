@@ -77,4 +77,5 @@ jobs:
           path: |
             artifacts/screenshots
             artifacts/milestone-1b/*.png
+            artifacts/milestone-2/*.png
             apps/desktop/test-results

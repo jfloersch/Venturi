@@ -2,11 +2,16 @@
 
 A local CFD workbench with inspectable geometry, deterministic execution, and evidence attached to every result.
 
-This checkout implements **milestone 1b**: prepared STEP fluid volume → confirmed ports → reviewed mesh → laminar flow → pressure loss and outlet flow split, through the desktop and CLI. The milestone-1a analytical pipe reference remains available. Numerical criteria are provisional; independent CFD review, mesh independence, and native Windows/macOS qualification remain pending.
+This checkout implements **milestone 2, the guided desktop alpha**: prepared
+STEP → annotated references → saved study and resource plan → reviewed mesh →
+laminar flow → inspectable results, native case and export. No AI account is needed.
+The milestone-1 analytical pipe reference remains available. Numerical criteria
+are provisional; independent CFD review and native Windows/macOS qualification
+remain pending.
 
-The [milestone 1 closeout](docs/milestone-1-closeout.md) records the additional
-clean-install, replay, mesh-sensitivity and browser regressions, fixes found in
-testing, and the remaining qualification work.
+See the [milestone 2 implementation and pilot guide](docs/milestone-2.md),
+[measured acceptance](docs/milestone-2-closeout.md),
+[testing guide](docs/testing.md), and [milestone 1 numerical closeout](docs/milestone-1-closeout.md).
 
 ## Try it on Ubuntu 22.04 / WSL2
 
@@ -43,11 +48,44 @@ The compiled executable is created by running `npm run tauri build -- --no-bundl
 
 Jobs run in independent local processes. Closing the browser/native UI or stopping/restarting the API does not stop an active job. Reopening reconnects to its saved state. Use **Cancel run** or `uv run venturi cancel <run-id>` to stop it. A dead runner is recorded as interrupted with a failure report; an explicit retry creates a new attempt from iteration zero. There is no automatic solver resume.
 
+## Guided desktop alpha
+
+1. **Import STEP** representing the enclosed space occupied by fluid. Review the
+   declared source units and converted bounding dimensions. Orbit, pan (middle
+   drag), zoom, isolate selected references, show CAD edges, or move an X/Y/Z cut.
+2. Select faces in the viewer/list and assign one inlet and one to four outlets.
+   Save the assignments. Select a face or edge and save a labeled annotation;
+   clicking the saved note restores its reference and camera.
+3. Enter the engineering question, inlet flow (m³/s or L/min), density, viscosity,
+   property source, and cell size. Fluid properties are suggestions to confirm,
+   and the inlet flow starts blank. Set elapsed-time, memory, disk and mesh-cell
+   limits. Collaborative/Expert presentation also exposes recipe-bounded iteration
+   and tool-time limits; all profiles use the same checks.
+4. **Save study** retains a named revision in the worker. Use the saved-study list
+   to reopen its geometry, ports, inputs and presentation after restarting the UI
+   or API. Unsaved form drafts stay in the browser. Opening a saved study restores
+   the saved revision; use **New study on this geometry** for a separate study.
+5. **Review study**, read the applicability checks and provisional cell estimate,
+   and confirm the study and resource plan. **Build mesh for review**, inspect
+   the rendered mesh and checks, then **Approve saved study & solve**. Changed
+   draft inputs mark earlier results historical and block approval until the
+   original saved inputs are reopened or a new mesh is reviewed.
+6. Review pressure loss, each outlet's flow split, convergence, checks and
+   limitations. Expand **Inspect native case, logs & downloads** to browse actual
+   files, compare the same file across runs, or download CSV, plots and reports.
+   **Export complete run** includes native inputs/fields and frozen study context
+   and annotations. The CLI can verify and replay the archive.
+
+The worker runs one serial attempt per explicit action. Budget exhaustion stops
+execution and preserves a failure report. No automatic retries or AI spending
+occur. Closing the UI does not cancel a job; **Cancel run** does. An API outage
+shows a disconnected state and automatically reconnects without resubmission.
+
 ## Milestone 1b: prepared STEP to report
 
 In the desktop, choose **Import STEP**, assign one planar inlet and one to four
 planar outlets, and save. Every remaining face is a wall. Enter inlet volumetric
-flow, density, viscosity and cell size, then choose **Build mesh for review**.
+flow, density, viscosity and cell size, choose **Review study**, confirm the plan, then choose **Build mesh for review**.
 Inspect the actual mesh, port mapping checks and saved study before choosing
 **Approve saved study & solve**. Results show pressure loss, per-outlet flow and
 split, numerical checks, and a portable export. Reloading restores selections,

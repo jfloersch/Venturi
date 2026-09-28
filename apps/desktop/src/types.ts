@@ -21,6 +21,7 @@ export type Geometry = {
   volume_m3: number;
   points: number[];
   faces: Face[];
+  edges?: Edge[];
   selection: { geometry_hash: string; assignments: Record<string, Role> };
   source_name?: string;
   imported?: boolean;
@@ -73,13 +74,27 @@ export type InternalStudy = {
   flow_rate_m3_s: number;
   density_kg_m3: number;
   dynamic_viscosity_pa_s: number;
-  mesh: { cell_size_m: number };
+  mesh: {
+    cell_size_m: number;
+    maximum_cells?: number;
+    timeout_seconds?: number;
+  };
+  resources?: { wall_time_seconds: number; memory_mb: number; disk_mb: number };
+  max_iterations?: number;
+  timeout_seconds?: number;
 };
 export type Study =
   { name?: string; pipe?: Record<string, number> } | InternalStudy;
 export type RunKind =
   "reference" | "cad_mesh" | "internal_mesh" | "internal_flow";
 export type Run = {
+  desktop_brief?: {
+    id: string;
+    revision: number;
+    question: string;
+    material_source: string;
+    profile: string;
+  };
   id: string;
   kind: RunKind;
   status: string;
@@ -99,5 +114,49 @@ export type Run = {
     approved_mesh_hash?: string | null;
     reason?: string;
     retry_of?: string | null;
+    desktop_study?: { id: string; revision: number } | null;
   };
 };
+
+export type Camera = {
+  position: number[];
+  focal_point: number[];
+  view_up: number[];
+};
+export type Edge = {
+  id: string;
+  index: number;
+  length_m: number;
+  centroid_m: number[];
+  adjacent_faces: string[];
+  points: number[];
+  curve_type: string;
+};
+export type Annotation = {
+  id: string;
+  entity_id: string;
+  label: string;
+  text: string;
+  position_m: number[];
+  camera: Camera;
+};
+export type Notes = {
+  geometry_hash: string;
+  revision: number;
+  annotations: Annotation[];
+};
+export type StudyRecord = {
+  id: string;
+  revision: number;
+  study_hash: string;
+  updated_at: string;
+  study: InternalStudy;
+  question: string;
+  material_source: string;
+  profile: "guided" | "collaborative" | "expert";
+};
+export type StudySave = Omit<
+  StudyRecord,
+  "id" | "revision" | "study_hash" | "updated_at"
+>;
+export type Api = (path: string, init?: RequestInit) => Promise<any>;
