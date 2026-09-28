@@ -1,0 +1,586 @@
+{
+  "schema_version": "venturi.m1b-closeout.v1",
+  "recorded_at": "2026-09-28T02:16:51.420628+00:00",
+  "version": "0.2.0",
+  "baseline_commit": "20efcfa",
+  "platform": "Ubuntu 22.04 x86_64 / WSL2; OpenFOAM Foundation 14",
+  "recipe": {
+    "schema_version": "venturi.recipe.v1",
+    "id": "laminar-internal/1",
+    "solver": "OpenFOAM Foundation 14 / incompressibleFluid",
+    "compiler": "venturi.internal/1",
+    "applicability": {
+      "geometry": "one prepared, closed solid fluid volume; planar simply connected ports",
+      "maximum_outlets": 4,
+      "maximum_port_reynolds_full_flow": 200,
+      "minimum_cells_per_port_diameter": 10,
+      "maximum_background_cells": 800000,
+      "maximum_cells": 400000,
+      "physics": "steady, incompressible, Newtonian, isothermal, laminar; no gravity"
+    },
+    "boundaries": {
+      "inlet": "uniform normal velocity integrated to the declared volumetric flow; pressure zeroGradient",
+      "outlets": "equal zero-gauge static pressure; velocity zeroGradient; backflow checked",
+      "walls": "stationary no-slip; pressure zeroGradient"
+    },
+    "quantity": {
+      "pressure_drop_pa": "inlet area-mean static pressure minus outlet-flow-weighted area-mean static pressure; kinematic p multiplied by density",
+      "outlets": "individual pressure differences and signed outward volume flows; split normalized by sum of outlet flows"
+    },
+    "criteria": {
+      "mesh_area_relative_error": 0.08,
+      "mesh_volume_relative_error": 0.05,
+      "mesh_centroid_extent_fraction": 0.01,
+      "port_normal_dot": 0.98,
+      "mass_imbalance": 0.001,
+      "pressure_stability": 0.001,
+      "flow_stability": 0.001,
+      "stability_window": 30,
+      "equation_residual": 1e-05,
+      "prescribed_flow_relative_error": 1e-05,
+      "outlet_backflow_fraction": 0.001,
+      "wall_leakage_fraction": 1e-07,
+      "field_history_flow_fraction": 1e-07,
+      "reproduction_relative_difference": 1e-06
+    },
+    "qualification": "provisional numerical checks; independent CFD review and mesh independence not assessed"
+  },
+  "worker_sources": {
+    "__init__.py": "5ecf5043b4166d7d6b039085de25d0c9b40281d1f8c59ae167af3f56bd725db0",
+    "artifacts.py": "d33ab3723a349c35e6e5fd7b5f6c29031ece40debca24221f01a80e5129b4dd3",
+    "cli.py": "f29ef5a03902ddef9da4dad3ac63e31094dc738d5de9de07e32fe0d6cdcfdb7c",
+    "evidence.py": "8bed1f760e4f47c0895a60cedc96b7fd3ea2012d88d9e1eb510237bd1e17ad70",
+    "foam.py": "8ca84dccab391484784596caaf9a644186c03a56fd024673bad3f68bcb577ca3",
+    "geometry.py": "b5714675776d940558c5a571c5dab6bb77867ef5bab24b590b48403cf53544a9",
+    "internal.py": "d63ec1420f7d91d4fc3b40ce536ea6ca6020048d9312387d6ef4569b200aa101",
+    "jobs.py": "0d052252406e04e5df6fa68231e6c461ca267539670eea5b03ee3915adc30c7f",
+    "models.py": "36b1e102a9fad1df54d9570a6d371ba62c77df02ea9aec955f92545a01bacd9b",
+    "process.py": "d25aabb80cbaeab8d23324bd3704260d7481a62153713e7ac27011e2f421b136",
+    "recipes.py": "8265dcb99b41ba0d910970a9a1d4b2892d0488937f170ed979ebe5a43cd45208",
+    "runner.py": "ebfc7091e2440babbfc1d7c672feca4dcb3f9c40f38ffb66ae568eef6ba71fad",
+    "runtime.py": "29b4aa1b4306db1da096a8741e4016efe3661abe4cda311f67ab0d3a1957affa",
+    "server.py": "d4b39b16d6503f36951e893e5f38fd8774aa4dfd5eeb0a2ef542c089fb6c397d",
+    "workflows.py": "e8b2c3f85b410ae55e83dab58b62f2117438f42e7394259330f930406bb41f91"
+  },
+  "cases": [
+    {
+      "name": "internal-bend",
+      "run": "artifacts/milestone-1b/acceptance/internal-bend0/store/runs/91309ba8fbb0462084e6ec5782419146",
+      "manifest_sha256": "347bc8f875ef6b0fda3c56ff79221a5ac36ba1fa6d724e2237753c2af63ebd7d",
+      "artifact_files": 168,
+      "geometry_hash": "54bb48187d1e12b97bf25c0abd263d2be2dd08502d10e11837f8b1dc79656ba5",
+      "study_hash": "7c25a50252299688c106242af7758b58b009ce8b4e19a94ea8f454ab91d7956b",
+      "recipe_hash": "931126133a5ea04f180a9e6740f979f91fab7d6be7cab566c955a8e384044e46",
+      "mesh_hash": "e5b6837316dda7ed8d9e4c2db540afa3aa7ac2ac4dd92648f196ad3a75d423aa",
+      "cells": 7599,
+      "mesh_volume_relative_error": 0.006555314230838694,
+      "pressure_drop_pa": 0.03515233368224,
+      "inlet_flow_m3_s": 1.570796326793e-07,
+      "mass_imbalance": 0.0,
+      "outlets": {
+        "outlet_1": {
+          "face_ids": [
+            "face_69b1a965814490c4"
+          ],
+          "volume_flow_m3_s": 1.570796326793e-07,
+          "flow_fraction": 1.0,
+          "pressure_drop_pa": 0.03515233368224,
+          "backflow_fraction": 0.0
+        }
+      },
+      "all_checks_pass": true,
+      "geometry": {
+        "units": "m",
+        "source_units": [
+          "millimetre"
+        ],
+        "bounds_m": [
+          2.1431318985078684e-18,
+          0.0,
+          -0.0050001,
+          0.035,
+          0.035,
+          0.0050001
+        ],
+        "volume_m3": 3.7011016504087047e-06
+      },
+      "study": {
+        "schema_version": "venturi.internal-study.v1",
+        "name": "Prepared STEP internal flow",
+        "recipe": "laminar-internal/1",
+        "physics": "steady-incompressible-newtonian-laminar",
+        "units": "SI",
+        "quantity": "inlet-to-outlet-static-pressure-and-flow-split",
+        "selection": {
+          "geometry_hash": "54bb48187d1e12b97bf25c0abd263d2be2dd08502d10e11837f8b1dc79656ba5",
+          "assignments": {
+            "face_19e5e1ca39c8b09c": "wall",
+            "face_921cd03d641ca665": "inlet",
+            "face_69b1a965814490c4": "outlet"
+          }
+        },
+        "flow_rate_m3_s": 1.5707963267948966e-07,
+        "density_kg_m3": 1000.0,
+        "dynamic_viscosity_pa_s": 0.001,
+        "inlet_profile": "uniform-normal",
+        "outlet_pressure_pa": 0,
+        "mesh": {
+          "cell_size_m": 0.0008,
+          "maximum_cells": 250000,
+          "timeout_seconds": 600
+        },
+        "max_iterations": 600,
+        "timeout_seconds": 900,
+        "resources": {
+          "wall_time_seconds": 2400,
+          "memory_mb": 4096,
+          "disk_mb": 2048
+        }
+      }
+    },
+    {
+      "name": "internal-held-out-rotated-duct-2",
+      "run": "artifacts/milestone-1b/acceptance/internal-held-out-rotated-duct-20/store/runs/930c77d213994e64b93bcfc1ca69f05f",
+      "manifest_sha256": "63fa0e1b7d08722edfacb2b667726b5ef64a9ee20a13859bd3685f1d6e9ed298",
+      "artifact_files": 168,
+      "geometry_hash": "4035d6868ae142ff8a80c62d6a164996f32d5269a8f737818a88eb32889bc4d3",
+      "study_hash": "8aa83373c24b65f41bc704853d168148def3ace5472f75b22391d667a0758bb8",
+      "recipe_hash": "931126133a5ea04f180a9e6740f979f91fab7d6be7cab566c955a8e384044e46",
+      "mesh_hash": "afc4abae33d936ef59c5ac8e514c503fcc840fd5ab0f850c69e792ad79cd60af",
+      "cells": 29751,
+      "mesh_volume_relative_error": 0.00012060340856784026,
+      "pressure_drop_pa": 0.03422716465061,
+      "inlet_flow_m3_s": 8e-08,
+      "mass_imbalance": 2.724997635471434e-11,
+      "outlets": {
+        "outlet_1": {
+          "face_ids": [
+            "face_2ef7facfc624b40e"
+          ],
+          "volume_flow_m3_s": 8.000000000218e-08,
+          "flow_fraction": 1.0,
+          "pressure_drop_pa": 0.03422716465061,
+          "backflow_fraction": 0.0
+        }
+      },
+      "all_checks_pass": true,
+      "geometry": {
+        "units": "m",
+        "source_units": [
+          "millimetre"
+        ],
+        "bounds_m": [
+          0.16705185158408856,
+          0.03886246893579893,
+          -0.04588699527774,
+          0.1983942917831128,
+          0.071336646447628,
+          0.031256527905115
+        ],
+        "volume_m3": 6.285239999997666e-06
+      },
+      "study": {
+        "schema_version": "venturi.internal-study.v1",
+        "name": "Prepared STEP internal flow",
+        "recipe": "laminar-internal/1",
+        "physics": "steady-incompressible-newtonian-laminar",
+        "units": "SI",
+        "quantity": "inlet-to-outlet-static-pressure-and-flow-split",
+        "selection": {
+          "geometry_hash": "4035d6868ae142ff8a80c62d6a164996f32d5269a8f737818a88eb32889bc4d3",
+          "assignments": {
+            "face_3776d146e6454cef": "wall",
+            "face_149df5b6402806ef": "wall",
+            "face_ab539c6664a8b644": "wall",
+            "face_822596cbf87f1579": "wall",
+            "face_dbff7531f0a28278": "inlet",
+            "face_2ef7facfc624b40e": "outlet"
+          }
+        },
+        "flow_rate_m3_s": 8e-08,
+        "density_kg_m3": 1000.0,
+        "dynamic_viscosity_pa_s": 0.001,
+        "inlet_profile": "uniform-normal",
+        "outlet_pressure_pa": 0,
+        "mesh": {
+          "cell_size_m": 0.0006,
+          "maximum_cells": 250000,
+          "timeout_seconds": 600
+        },
+        "max_iterations": 600,
+        "timeout_seconds": 900,
+        "resources": {
+          "wall_time_seconds": 2400,
+          "memory_mb": 4096,
+          "disk_mb": 2048
+        }
+      }
+    },
+    {
+      "name": "internal-held-out-rotated-duct",
+      "run": "artifacts/milestone-1b/acceptance/internal-held-out-rotated-duct0/store/runs/c66e6230d48d4089b4b1e12977588ac8",
+      "manifest_sha256": "07c6f9654e8786cb582ff36509b19b22e3aa9ce4a24e9a79451198179cf89b41",
+      "artifact_files": 168,
+      "geometry_hash": "e5cf2f4f920d39cf5980690c6c48373b0227bb5ed098c7b1b76962f3fa621f32",
+      "study_hash": "c3d8cb8310697473670c171f14b89584f396c2ee779c95aa9729dea613e72cde",
+      "recipe_hash": "931126133a5ea04f180a9e6740f979f91fab7d6be7cab566c955a8e384044e46",
+      "mesh_hash": "9181dce4feec811229acb94b77201708937830cc68b0d6755ab31aa626fa41ef",
+      "cells": 20640,
+      "mesh_volume_relative_error": 0.00012946737558368774,
+      "pressure_drop_pa": 0.032367783434420004,
+      "inlet_flow_m3_s": 8.000000000002e-08,
+      "mass_imbalance": 6.275008670044193e-11,
+      "outlets": {
+        "outlet_1": {
+          "face_ids": [
+            "face_70aa4aac2abd38cd"
+          ],
+          "volume_flow_m3_s": 8.000000000504e-08,
+          "flow_fraction": 1.0,
+          "pressure_drop_pa": 0.032367783434420004,
+          "backflow_fraction": 0.0
+        }
+      },
+      "all_checks_pass": true,
+      "geometry": {
+        "units": "m",
+        "source_units": [
+          "millimetre"
+        ],
+        "bounds_m": [
+          0.13756661373921,
+          -0.09544347987348155,
+          0.042592732111304696,
+          0.16926031614967016,
+          -0.07937748048354915,
+          0.11634559816374782
+        ],
+        "volume_m3": 5.620999999998156e-06
+      },
+      "study": {
+        "schema_version": "venturi.internal-study.v1",
+        "name": "Prepared STEP internal flow",
+        "recipe": "laminar-internal/1",
+        "physics": "steady-incompressible-newtonian-laminar",
+        "units": "SI",
+        "quantity": "inlet-to-outlet-static-pressure-and-flow-split",
+        "selection": {
+          "geometry_hash": "e5cf2f4f920d39cf5980690c6c48373b0227bb5ed098c7b1b76962f3fa621f32",
+          "assignments": {
+            "face_1c1b7ac177496cbb": "wall",
+            "face_63f1d4328cd89ddf": "wall",
+            "face_5e0219474b36f207": "wall",
+            "face_7f6542d0edafe14d": "wall",
+            "face_b9296aea515e9a97": "inlet",
+            "face_70aa4aac2abd38cd": "outlet"
+          }
+        },
+        "flow_rate_m3_s": 8e-08,
+        "density_kg_m3": 1000.0,
+        "dynamic_viscosity_pa_s": 0.001,
+        "inlet_profile": "uniform-normal",
+        "outlet_pressure_pa": 0,
+        "mesh": {
+          "cell_size_m": 0.00065,
+          "maximum_cells": 250000,
+          "timeout_seconds": 600
+        },
+        "max_iterations": 600,
+        "timeout_seconds": 900,
+        "resources": {
+          "wall_time_seconds": 2400,
+          "memory_mb": 4096,
+          "disk_mb": 2048
+        }
+      }
+    },
+    {
+      "name": "internal-manifold",
+      "run": "artifacts/milestone-1b/acceptance/internal-manifold0/store/runs/46f05a37f39348b5a221e60612395695",
+      "manifest_sha256": "eb9749dbe0b008399e45f9d8044514035d3f103c338a21c2f1d8e49809f4e7a5",
+      "artifact_files": 178,
+      "geometry_hash": "087c012aca0b254d8cc15bc2c732d62fb0badd15f80d0d5335e43305167d7534",
+      "study_hash": "1d0ff0eb1f0fa6bae4edb217b3973cca3e05db86b3ff1c493003134e60d23818",
+      "recipe_hash": "931126133a5ea04f180a9e6740f979f91fab7d6be7cab566c955a8e384044e46",
+      "mesh_hash": "0c4fcf629ed7f6d0f3432bcaa737a37a887a38ba3d5c6e9d8f55a6e0a32164e9",
+      "cells": 35168,
+      "mesh_volume_relative_error": 0.004525024197442241,
+      "pressure_drop_pa": 0.04249171460614,
+      "inlet_flow_m3_s": 1.570796326796e-07,
+      "mass_imbalance": 6.620999123704055e-12,
+      "outlets": {
+        "outlet_1": {
+          "face_ids": [
+            "face_cec5d59a563ac5cd"
+          ],
+          "volume_flow_m3_s": 7.853847893508e-08,
+          "flow_fraction": 0.4999914858138055,
+          "pressure_drop_pa": 0.04249171460614,
+          "backflow_fraction": 0.0
+        },
+        "outlet_2": {
+          "face_ids": [
+            "face_8e8cabc457e7438c"
+          ],
+          "volume_flow_m3_s": 7.854115374556e-08,
+          "flow_fraction": 0.5000085141861944,
+          "pressure_drop_pa": 0.04249171460614,
+          "backflow_fraction": 0.0
+        }
+      },
+      "all_checks_pass": true,
+      "geometry": {
+        "units": "m",
+        "source_units": [
+          "millimetre"
+        ],
+        "bounds_m": [
+          -0.03,
+          -0.005,
+          0.0,
+          0.03,
+          0.005,
+          0.055
+        ],
+        "volume_m3": 8.306046510846662e-06
+      },
+      "study": {
+        "schema_version": "venturi.internal-study.v1",
+        "name": "Prepared STEP internal flow",
+        "recipe": "laminar-internal/1",
+        "physics": "steady-incompressible-newtonian-laminar",
+        "units": "SI",
+        "quantity": "inlet-to-outlet-static-pressure-and-flow-split",
+        "selection": {
+          "geometry_hash": "087c012aca0b254d8cc15bc2c732d62fb0badd15f80d0d5335e43305167d7534",
+          "assignments": {
+            "face_0ee931c905af7ad3": "wall",
+            "face_9a2d50514244382f": "wall",
+            "face_31c73b3d54eceef0": "inlet",
+            "face_cec5d59a563ac5cd": "outlet",
+            "face_8e8cabc457e7438c": "outlet"
+          }
+        },
+        "flow_rate_m3_s": 1.5707963267948966e-07,
+        "density_kg_m3": 1000.0,
+        "dynamic_viscosity_pa_s": 0.001,
+        "inlet_profile": "uniform-normal",
+        "outlet_pressure_pa": 0,
+        "mesh": {
+          "cell_size_m": 0.000625,
+          "maximum_cells": 250000,
+          "timeout_seconds": 600
+        },
+        "max_iterations": 600,
+        "timeout_seconds": 900,
+        "resources": {
+          "wall_time_seconds": 2400,
+          "memory_mb": 4096,
+          "disk_mb": 2048
+        }
+      }
+    },
+    {
+      "name": "internal-pipe",
+      "run": "artifacts/milestone-1b/acceptance/internal-pipe0/store/runs/d3a748d72af842a795f1f989185983fd",
+      "manifest_sha256": "abe84873a2d33db1bd1b2fc4ece8c1aaccb1a7f1956d75815aeb5b18b331a3bf",
+      "artifact_files": 168,
+      "geometry_hash": "d2be0d34be047c69aa50caa98126d354cf08aa5bb82f0098a67c41c924333873",
+      "study_hash": "dae6ac899c17a30fb0c8129fdf992b0ad3d849309acb0d5d02f6a6187b973e30",
+      "recipe_hash": "931126133a5ea04f180a9e6740f979f91fab7d6be7cab566c955a8e384044e46",
+      "mesh_hash": "ab259a876e77cdc390937e2cf274465dd7c22876a71279419825a30081962ca7",
+      "cells": 17125,
+      "mesh_volume_relative_error": 0.006569429163329143,
+      "pressure_drop_pa": 0.06836236438782001,
+      "inlet_flow_m3_s": 1.570796326795e-07,
+      "mass_imbalance": 7.512123492340992e-11,
+      "outlets": {
+        "outlet_1": {
+          "face_ids": [
+            "face_09a23274142ad8dc"
+          ],
+          "volume_flow_m3_s": 1.570796326677e-07,
+          "flow_fraction": 1.0,
+          "pressure_drop_pa": 0.06836236438782001,
+          "backflow_fraction": 0.0
+        }
+      },
+      "all_checks_pass": true,
+      "geometry": {
+        "units": "m",
+        "source_units": [
+          "millimetre"
+        ],
+        "bounds_m": [
+          -0.005,
+          -0.005,
+          0.0,
+          0.005,
+          0.005,
+          0.1
+        ],
+        "volume_m3": 7.853981633974484e-06
+      },
+      "study": {
+        "schema_version": "venturi.internal-study.v1",
+        "name": "Prepared STEP internal flow",
+        "recipe": "laminar-internal/1",
+        "physics": "steady-incompressible-newtonian-laminar",
+        "units": "SI",
+        "quantity": "inlet-to-outlet-static-pressure-and-flow-split",
+        "selection": {
+          "geometry_hash": "d2be0d34be047c69aa50caa98126d354cf08aa5bb82f0098a67c41c924333873",
+          "assignments": {
+            "face_45a06af3b523a491": "wall",
+            "face_09a23274142ad8dc": "outlet",
+            "face_31c73b3d54eceef0": "inlet"
+          }
+        },
+        "flow_rate_m3_s": 1.5707963267948966e-07,
+        "density_kg_m3": 1000.0,
+        "dynamic_viscosity_pa_s": 0.001,
+        "inlet_profile": "uniform-normal",
+        "outlet_pressure_pa": 0,
+        "mesh": {
+          "cell_size_m": 0.0008,
+          "maximum_cells": 250000,
+          "timeout_seconds": 600
+        },
+        "max_iterations": 600,
+        "timeout_seconds": 900,
+        "resources": {
+          "wall_time_seconds": 2400,
+          "memory_mb": 4096,
+          "disk_mb": 2048
+        }
+      }
+    },
+    {
+      "name": "internal-rectangular",
+      "run": "artifacts/milestone-1b/acceptance/internal-rectangular0/store/runs/c2a91ef718194fb2b80bc9a1685c8122",
+      "manifest_sha256": "b75b1bc00a2bab557a4c681cf1ac93e31a1c1f5a71b8e4efd43f0704f511a5f2",
+      "artifact_files": 168,
+      "geometry_hash": "653bb69491c12a0a6c86dd0942834a2a12502318b9a0dfcbaae31f31472c818c",
+      "study_hash": "a751e1c1eb3ca6283431dd36c54d7748e235e80ec7c746aaff6c5eaf47e253ab",
+      "recipe_hash": "931126133a5ea04f180a9e6740f979f91fab7d6be7cab566c955a8e384044e46",
+      "mesh_hash": "b7bded2cde5beb8ef46f007a5b46e0ab4de71413f053613e411d6dcf561dad30",
+      "cells": 20700,
+      "mesh_volume_relative_error": 2.7937501087342396e-09,
+      "pressure_drop_pa": 0.03030019840539,
+      "inlet_flow_m3_s": 8.000000000004e-08,
+      "mass_imbalance": 6.7499592345518415e-12,
+      "outlets": {
+        "outlet_1": {
+          "face_ids": [
+            "face_c93ed56bda2f7d97"
+          ],
+          "volume_flow_m3_s": 7.99999999995e-08,
+          "flow_fraction": 1.0,
+          "pressure_drop_pa": 0.03030019840539,
+          "backflow_fraction": 0.0
+        }
+      },
+      "all_checks_pass": true,
+      "geometry": {
+        "units": "m",
+        "source_units": [
+          "millimetre"
+        ],
+        "bounds_m": [
+          0.0,
+          0.0,
+          0.0,
+          0.01,
+          0.008,
+          0.08
+        ],
+        "volume_m3": 6.4e-06
+      },
+      "study": {
+        "schema_version": "venturi.internal-study.v1",
+        "name": "Prepared STEP internal flow",
+        "recipe": "laminar-internal/1",
+        "physics": "steady-incompressible-newtonian-laminar",
+        "units": "SI",
+        "quantity": "inlet-to-outlet-static-pressure-and-flow-split",
+        "selection": {
+          "geometry_hash": "653bb69491c12a0a6c86dd0942834a2a12502318b9a0dfcbaae31f31472c818c",
+          "assignments": {
+            "face_c242adde55c39b8f": "wall",
+            "face_e370c34e5f4e91f4": "wall",
+            "face_d86b48603ba7a6b1": "wall",
+            "face_fc20ac8a5b6d0ddc": "wall",
+            "face_5da07b165bf65ae5": "inlet",
+            "face_c93ed56bda2f7d97": "outlet"
+          }
+        },
+        "flow_rate_m3_s": 8e-08,
+        "density_kg_m3": 1000.0,
+        "dynamic_viscosity_pa_s": 0.001,
+        "inlet_profile": "uniform-normal",
+        "outlet_pressure_pa": 0,
+        "mesh": {
+          "cell_size_m": 0.0007,
+          "maximum_cells": 250000,
+          "timeout_seconds": 600
+        },
+        "max_iterations": 600,
+        "timeout_seconds": 900,
+        "resources": {
+          "wall_time_seconds": 2400,
+          "memory_mb": 4096,
+          "disk_mb": 2048
+        }
+      }
+    }
+  ],
+  "developed_pipe_gradient": {
+    "measured_pa_m": -0.6412817829376147,
+    "expected_pa_m": -0.6399999999999999,
+    "relative_error": 0.0020027858400231695,
+    "limit": 0.05
+  },
+  "reproduction": {
+    "run": "artifacts/milestone-1b/acceptance/test_portable_replay_and_tampe2/replayed \u03a9 with spaces",
+    "manifest_sha256": "71d5fb0d99d5d06ddb771babeda9abe3cef084091f9b26c80a4b7a4f457de77a",
+    "maximum_pressure_or_branch_flow_relative_difference": 0.0
+  },
+  "tests": {
+    "python": {
+      "passed": 126,
+      "log": "artifacts/milestone-1b/acceptance.log",
+      "sha256": "19729370b0abc149d08892f27a4bc57f58e8bd9a707649468ee6ba6fcb6fe7e5"
+    },
+    "browser": {
+      "scenarios": 4,
+      "full_suite_log": "artifacts/milestone-1b/browser-acceptance.log",
+      "final_guard_log": "artifacts/milestone-1b/browser-guard-verified.log",
+      "full_suite_log_sha256": "8dea0d9b7a47a7dc47f782f25c2718e772dab38d976fd15c98fa9ceb200b5e5f",
+      "final_guard_log_sha256": "a55ed018a3ac8881b2bbe3cd5758b3cf334f1189f93aaa1d8aa61903652f067c"
+    },
+    "native": {
+      "platform": "Linux Tauri / WebKitGTK in WSLg, software rendering",
+      "run": "artifacts/milestone-1b/native/workspace/runs/1d287269c0b242ac854a074f45d9a82e",
+      "manifest_sha256": "60cb0d0c3efb91cfae51b0fbbaa601436786816a8bb229f892c0a3c7e4b0aac6",
+      "archive": "artifacts/milestone-1b/native/bend \u03a9 export.zip",
+      "release_binary_sha256": "d2ccd4205cf4cc6da47154eeeafa85b83c1610a262029eb01a3acc30f05405e5",
+      "checks": [
+        "STEP file picker",
+        "explicit inlet/outlet assignments",
+        "visible CAD and actual mesh edges",
+        "rendered mesh approval enabled",
+        "solve",
+        "close/reopen while run persisted",
+        "API restart and retained result",
+        "native ZIP export and verification"
+      ]
+    }
+  },
+  "limitations": [
+    "Synthetic bounded cases only; no claim of arbitrary-CAD accuracy",
+    "Uniform inlet and equal zero-gauge outlets; no turbulence",
+    "Independent CFD review pending",
+    "Mesh independence and experimental validation not assessed",
+    "Native Windows/macOS/ARM not tested; release packaging not provided"
+  ]
+}

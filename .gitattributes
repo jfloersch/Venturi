@@ -1,0 +1,3 @@
+# STEP byte identity is the geometry revision; retain the CAD writer output.
+*.step -text -whitespace
+*.stp -text -whitespace

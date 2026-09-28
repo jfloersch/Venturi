@@ -20,11 +20,15 @@ export function Viewer({
   assignments,
   selected,
   onSelect,
+  mesh = false,
+  onRenderReady,
 }: {
   geometry: Geometry;
   assignments: Record<string, Role>;
   selected: string | null;
   onSelect: (id: string) => void;
+  mesh?: boolean;
+  onRenderReady?: (ready: boolean) => void;
 }) {
   const container = useRef<HTMLDivElement>(null);
   const scene = useRef<{
@@ -39,12 +43,15 @@ export function Viewer({
   } | null>(null);
   const selectRef = useRef(onSelect);
   selectRef.current = onSelect;
+  const readyRef = useRef(onRenderReady);
+  readyRef.current = onRenderReady;
   const [clip, setClip] = useState(false);
   const [transparent, setTransparent] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (!container.current) return;
+    readyRef.current?.(false);
     let cleanup = () => {};
     try {
       const window = vtkGenericRenderWindow.newInstance({
@@ -55,7 +62,9 @@ export function Viewer({
       const renderWindow = window.getRenderWindow();
       const plane = vtkPlane.newInstance({
         normal: [1, 0, 0],
-        origin: [0, 0, 0],
+        origin: [0, 1, 2].map(
+          (i) => (geometry.bounds_m[i] + geometry.bounds_m[i + 3]) / 2,
+        ) as [number, number, number],
       });
       const actors = geometry.faces.map((face) => {
         const data = vtkPolyData.newInstance();
@@ -68,14 +77,27 @@ export function Viewer({
         actor.getProperty().setColor(...colors[assignments[face.id] || "wall"]);
         actor.getProperty().setAmbient(0.28);
         actor.getProperty().setDiffuse(0.72);
+        actor.getProperty().setEdgeVisibility(mesh);
+        actor.getProperty().setEdgeColor(0.08, 0.15, 0.16);
         renderer.addActor(actor);
         return { id: face.id, actor, mapper, data };
       });
       const reset = () => {
         const camera = renderer.getActiveCamera();
-        const length = geometry.bounds_m[5] - geometry.bounds_m[2];
-        camera.setPosition(length * 1.3, -length * 0.8, -length * 0.45);
-        camera.setFocalPoint(0, 0, length / 2);
+        const center = [0, 1, 2].map(
+          (i) => (geometry.bounds_m[i] + geometry.bounds_m[i + 3]) / 2,
+        );
+        const length = Math.max(
+          ...[0, 1, 2].map(
+            (i) => geometry.bounds_m[i + 3] - geometry.bounds_m[i],
+          ),
+        );
+        camera.setPosition(
+          center[0] + length * 1.3,
+          center[1] - length * 0.8,
+          center[2] - length * 0.95,
+        );
+        camera.setFocalPoint(...(center as [number, number, number]));
         camera.setViewUp(0, 0, 1);
         renderer.resetCamera();
         window.resize();
@@ -136,6 +158,7 @@ export function Viewer({
           visiblePixels++;
       const diagnostic = `Geometry renderer: ${gl.getParameter(gl.VERSION)}, ${gl.drawingBufferWidth}x${gl.drawingBufferHeight}, ${visiblePixels} visible pixels; GL error ${gl.getError()}`;
       container.current.dataset.renderedPixels = String(visiblePixels);
+      readyRef.current?.(visiblePixels > 0);
       if ("__TAURI_INTERNALS__" in globalThis.window)
         import("@tauri-apps/api/core")
           .then(({ invoke }) =>
@@ -177,8 +200,10 @@ export function Viewer({
     <div className="viewer-wrap">
       <div className="viewer" ref={container} data-testid="geometry-viewer" />
       <div className="viewer-label">
-        <span className="live-dot" /> FLUID VOLUME{" "}
-        <span className="viewer-sub">STEP / metres</span>
+        <span className="live-dot" /> {mesh ? "MESH BOUNDARY" : "FLUID VOLUME"}{" "}
+        <span className="viewer-sub">
+          {mesh ? "Cell edges / metres" : "STEP / metres"}
+        </span>
       </div>
       <div className="viewer-tools">
         <button

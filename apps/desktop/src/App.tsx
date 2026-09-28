@@ -20,18 +20,29 @@ import {
   XCircle,
 } from "lucide-react";
 import { Viewer } from "./Viewer";
+import { FlowSetup } from "./FlowSetup";
+import { MeshReview } from "./MeshReview";
 import type {
   Check as EvidenceCheck,
   Diagnostics,
   Geometry,
   Role,
   Run,
+  RunKind,
+  InternalStudy,
 } from "./types";
 
 const API = import.meta.env.VITE_VENTURI_API || "http://127.0.0.1:8765";
 const protocol = "venturi.worker.v1";
 const active = (run?: Run | null) =>
   !!run && ["queued", "running"].includes(run.status);
+const runLabel = (kind: RunKind) =>
+  ({
+    reference: "Pipe-flow reference",
+    cad_mesh: "CAD boundary check",
+    internal_mesh: "STEP mesh review",
+    internal_flow: "STEP flow result",
+  })[kind];
 
 function CheckRow({ item }: { item: EvidenceCheck }) {
   return (
@@ -81,17 +92,19 @@ function Plot({ run }: { run: Run }) {
         aria-label="Pressure drop by solver iteration"
       >
         <line x1="42" y1="145" x2="680" y2="145" stroke="#d5dfdc" />
-        <line
-          x1="42"
-          y1={y(expected)}
-          x2="680"
-          y2={y(expected)}
-          stroke="#bc8748"
-          strokeDasharray="5 5"
-        />
+        {run.result?.expected_pressure_drop_pa !== undefined && (
+          <line
+            x1="42"
+            y1={y(expected)}
+            x2="680"
+            y2={y(expected)}
+            stroke="#bc8748"
+            strokeDasharray="5 5"
+          />
+        )}
         <path d={path} fill="none" stroke="#168876" strokeWidth="2.2" />
         <text x="0" y={y(expected) + 4}>
-          {expected.toFixed(2)}
+          {expected ? expected.toFixed(2) : "Pa"}
         </text>
         <text x="40" y="168">
           {history[0].iteration}
@@ -102,7 +115,9 @@ function Plot({ run }: { run: Run }) {
       </svg>
       <div className="plot-legend">
         <span className="teal">— OpenFOAM</span>
-        <span className="gold">- - Analytical reference</span>
+        {run.result?.expected_pressure_drop_pa !== undefined && (
+          <span className="gold">- - Analytical reference</span>
+        )}
       </div>
     </div>
   );
@@ -136,9 +151,15 @@ export function App() {
   const face = geometry?.faces.find((f) => f.id === selected);
   const studyPipe =
     tab === "evidence" && run?.kind === "reference"
-      ? run.request?.study?.pipe || run.result?.inputs?.pipe
+      ? (run.request?.study && "pipe" in run.request.study
+          ? run.request.study.pipe
+          : undefined) || run.result?.inputs?.pipe
       : undefined;
   const shownRadius = studyPipe?.radius_m ?? 0.005;
+  const shownInternal =
+    tab === "evidence" ? run?.kind.startsWith("internal_") : geometry?.imported;
+  const shownGeometryName =
+    tab === "evidence" ? run?.request?.study?.name : geometry?.source_name;
   const shownLength = studyPipe?.length_m ?? 0.1;
   const shownReynolds = studyPipe
     ? (2 *
@@ -321,6 +342,74 @@ export function App() {
     });
   }
 
+  function displayGeometry(g: Geometry) {
+    setGeometry(g);
+    setAssignments(g.selection.assignments);
+    setSelected(g.faces[0]?.id || null);
+    setDirty(false);
+    setTab("geometry");
+  }
+  async function importStep(file: File) {
+    await action(async () => {
+      if (file.size > 16 * 1024 * 1024)
+        throw new Error("STEP exceeds the 16 MiB import limit.");
+      const response = await fetch(
+        `${API}/v1/geometry?filename=${encodeURIComponent(file.name)}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${tokenRef.current}`,
+            "Content-Type": "application/octet-stream",
+          },
+          body: file,
+        },
+      );
+      const value = await response.json();
+      if (!response.ok)
+        throw new Error(
+          typeof value.detail === "string"
+            ? value.detail
+            : "Could not import this prepared fluid volume.",
+        );
+      displayGeometry(value);
+    });
+  }
+  async function buildInternalMesh(study: InternalStudy) {
+    await action(async () => {
+      if (dirty) await save();
+      const value: Run = await api("/runs", {
+        method: "POST",
+        body: JSON.stringify({
+          kind: "internal_mesh",
+          request_id: crypto.randomUUID(),
+          study,
+        }),
+      });
+      setRuns((old) => [value, ...old]);
+      setRunId(value.id);
+      setTab("evidence");
+    });
+  }
+  async function approveMesh() {
+    if (!run || run.kind !== "internal_mesh") return;
+    await action(async () => {
+      const value: Run = await api("/runs", {
+        method: "POST",
+        body: JSON.stringify({
+          kind: "internal_flow",
+          request_id: crypto.randomUUID(),
+          study: run.request?.study,
+          mesh_run_id: run.id,
+          approved_mesh_hash: run.result?.mesh_hash,
+          reason:
+            "User reviewed and approved this mesh and saved study in the workbench",
+        }),
+      });
+      setRuns((old) => [value, ...old]);
+      setRunId(value.id);
+    });
+  }
+
   return (
     <div className="app">
       <aside className="sidebar">
@@ -339,7 +428,7 @@ export function App() {
           </div>
           <div>
             <strong>First principles</strong>
-            <span>Milestone 1a · reference workflow</span>
+            <span>Milestone 1b · STEP to report</span>
           </div>
         </div>
         <nav aria-label="Workbench navigation">
@@ -383,11 +472,7 @@ export function App() {
               >
                 <span className={`run-dot ${r.status}`} />
                 <div>
-                  <strong>
-                    {r.kind === "reference"
-                      ? "Pipe-flow reference"
-                      : "CAD boundary check"}
-                  </strong>
+                  <strong>{runLabel(r.kind)}</strong>
                   <small>
                     {r.id.slice(0, 8)} · {r.status}
                   </small>
@@ -406,7 +491,7 @@ export function App() {
             <PlugZap size={15} />
             Worker connection
           </button>
-          <small>VENTURI / DEVELOPMENT BUILD 0.1.0</small>
+          <small>VENTURI / DEVELOPMENT BUILD 0.2.0</small>
         </div>
       </aside>
       <main>
@@ -427,20 +512,24 @@ export function App() {
         <div className="page">
           <div className="page-title">
             <div>
-              <div className="eyebrow">REFERENCE WORKBENCH / 001</div>
+              <div className="eyebrow">LOCAL FLOW WORKBENCH / 001</div>
               <h1>
                 {tab === "geometry"
-                  ? "Start with the fundamentals."
+                  ? geometry?.imported
+                    ? "From fluid volume to evidence."
+                    : "Start with the fundamentals."
                   : "Every result has a record."}
               </h1>
               <p>
                 {tab === "geometry"
-                  ? "A simple pipe. Known physics. An inspectable path from geometry to evidence."
+                  ? geometry?.imported
+                    ? "Confirm the ports, review the mesh, and solve a bounded laminar study."
+                    : "A simple pipe. Known physics. An inspectable path from geometry to evidence."
                   : "Review the checks, keep the artifacts, and see exactly what has been established."}
               </p>
             </div>
             <span className="milestone-badge">
-              M1a <span>PREVIEW</span>
+              M1b <span>PREVIEW</span>
             </span>
           </div>
           {error && (
@@ -510,10 +599,11 @@ export function App() {
                 <div>
                   <Box size={17} />
                   <span>
-                    Reference geometry
+                    {shownInternal ? "Prepared geometry" : "Reference geometry"}
                     <strong>
-                      Ø {(shownRadius * 2000).toLocaleString()} ×{" "}
-                      {(shownLength * 1000).toLocaleString()} mm pipe
+                      {shownInternal
+                        ? shownGeometryName
+                        : `Ø ${(shownRadius * 2000).toLocaleString()} × ${(shownLength * 1000).toLocaleString()} mm pipe`}
                     </strong>
                   </span>
                 </div>
@@ -521,7 +611,11 @@ export function App() {
                   <Wind size={17} />
                   <span>
                     Flow regime
-                    <strong>Laminar · Re {shownReynolds.toFixed(0)}</strong>
+                    <strong>
+                      {shownInternal
+                        ? "Laminar · port Re ≤ 200"
+                        : `Laminar · Re ${shownReynolds.toFixed(0)}`}
+                    </strong>
                   </span>
                 </div>
                 <div>
@@ -533,12 +627,53 @@ export function App() {
               </div>
               {tab === "geometry" && geometry && (
                 <>
+                  <section className="import-card">
+                    <div>
+                      <strong>Bring a prepared fluid volume</strong>
+                      <p>
+                        Import a watertight STEP of the space occupied by fluid.
+                        Solid parts and assemblies require preparation in your
+                        CAD tool.
+                      </p>
+                    </div>
+                    <label className="secondary import-button">
+                      Import STEP
+                      <input
+                        aria-label="Import STEP"
+                        type="file"
+                        accept=".step,.stp"
+                        disabled={busy || hasActive}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) void importStep(file);
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+                    {geometry.imported && (
+                      <button
+                        className="secondary"
+                        disabled={busy || hasActive}
+                        onClick={() =>
+                          action(async () =>
+                            displayGeometry(
+                              await api("/geometry/fixture", {
+                                method: "POST",
+                              }),
+                            ),
+                          )
+                        }
+                      >
+                        Reference geometry
+                      </button>
+                    )}
+                  </section>
                   <section className="geometry-grid">
                     <div className="geometry-panel">
                       <div className="panel-heading">
                         <h2>Fluid domain</h2>
                         <span>
-                          pipe.step{" "}
+                          {geometry.source_name || "pipe.step"}{" "}
                           <span className="muted">
                             / {geometry.faces.length} faces
                           </span>
@@ -582,7 +717,9 @@ export function App() {
                             <div>
                               <strong>
                                 {assignments[f.id] === "wall"
-                                  ? "Pipe wall"
+                                  ? geometry.imported
+                                    ? "Wall"
+                                    : "Pipe wall"
                                   : assignments[f.id] === "inlet"
                                     ? "Inlet port"
                                     : "Outlet port"}
@@ -631,25 +768,36 @@ export function App() {
                       </button>
                     </div>
                   </section>
+                  {geometry.imported && (
+                    <FlowSetup
+                      key={geometry.geometry_hash}
+                      geometry={geometry}
+                      assignments={assignments}
+                      disabled={busy || hasActive || !diagnostics.solver_ready}
+                      onBuild={buildInternalMesh}
+                    />
+                  )}
                   <div className="test-cards">
-                    <section>
-                      <span className="step-number">01 / GEOMETRY</span>
-                      <h2>Does CAD become the right mesh?</h2>
-                      <p>
-                        Export the selected faces, generate a real mesh, then
-                        compare boundary names, areas, and locations.
-                      </p>
-                      <button
-                        className="secondary"
-                        disabled={
-                          busy || hasActive || !diagnostics.solver_ready
-                        }
-                        onClick={() => start("cad_mesh")}
-                      >
-                        Run boundary check
-                        <ArrowRight size={16} />
-                      </button>
-                    </section>
+                    {!geometry.imported && (
+                      <section>
+                        <span className="step-number">01 / GEOMETRY</span>
+                        <h2>Does CAD become the right mesh?</h2>
+                        <p>
+                          Export the selected faces, generate a real mesh, then
+                          compare boundary names, areas, and locations.
+                        </p>
+                        <button
+                          className="secondary"
+                          disabled={
+                            busy || hasActive || !diagnostics.solver_ready
+                          }
+                          onClick={() => start("cad_mesh")}
+                        >
+                          Run boundary check
+                          <ArrowRight size={16} />
+                        </button>
+                      </section>
+                    )}
                     <section>
                       <span className="step-number">02 / NUMERICS</span>
                       <h2>Does the solver recover a known answer?</h2>
@@ -674,13 +822,7 @@ export function App() {
               {tab === "evidence" && (
                 <section className="evidence-panel">
                   <div className="panel-heading">
-                    <h2>
-                      {run
-                        ? run.kind === "reference"
-                          ? "Pipe-flow reference"
-                          : "CAD boundary check"
-                        : "No runs yet"}
-                    </h2>
+                    <h2>{run ? runLabel(run.kind) : "No runs yet"}</h2>
                     {run && (
                       <span className={`status-pill ${run.status}`}>
                         {active(run) && (
@@ -757,8 +899,13 @@ export function App() {
                           <summary>Saved study and provenance</summary>
                           <p>
                             {run.result?.inputs?.name ||
-                              "Laminar pipe reference"}{" "}
-                            · {run.result?.recipe || "laminar-pipe/1"}
+                              run.request?.study?.name ||
+                              "Saved study"}{" "}
+                            ·{" "}
+                            {run.result?.recipe ||
+                              (run.kind.startsWith("internal_")
+                                ? "laminar-internal/1"
+                                : "laminar-pipe/1")}
                           </p>
                           <p>
                             Study <code>{run.study_hash}</code>
@@ -774,6 +921,16 @@ export function App() {
                       )}
                       {run.result && (
                         <>
+                          {run.kind === "internal_mesh" &&
+                            run.status === "passed" && (
+                              <MeshReview
+                                key={run.id}
+                                run={run}
+                                api={api}
+                                disabled={busy || hasActive}
+                                onApprove={approveMesh}
+                              />
+                            )}
                           {run.result.pressure_drop_pa !== undefined && (
                             <div className="result-metrics">
                               <div>
@@ -783,27 +940,98 @@ export function App() {
                                   <small>Pa</small>
                                 </strong>
                               </div>
-                              <div>
-                                <span>ANALYTICAL REFERENCE</span>
-                                <strong>
-                                  {run.result.expected_pressure_drop_pa?.toFixed(
-                                    5,
-                                  )}{" "}
-                                  <small>Pa</small>
-                                </strong>
-                              </div>
-                              <div>
-                                <span>RELATIVE DIFFERENCE</span>
-                                <strong>
-                                  {(
-                                    (run.result.relative_error || 0) * 100
-                                  ).toFixed(2)}
-                                  <small>%</small>
-                                </strong>
-                              </div>
+                              {run.result.expected_pressure_drop_pa !==
+                              undefined ? (
+                                <>
+                                  <div>
+                                    <span>ANALYTICAL REFERENCE</span>
+                                    <strong>
+                                      {run.result.expected_pressure_drop_pa?.toFixed(
+                                        5,
+                                      )}{" "}
+                                      <small>Pa</small>
+                                    </strong>
+                                  </div>
+                                  <div>
+                                    <span>RELATIVE DIFFERENCE</span>
+                                    <strong>
+                                      {(
+                                        (run.result.relative_error || 0) * 100
+                                      ).toFixed(2)}
+                                      <small>%</small>
+                                    </strong>
+                                  </div>
+                                </>
+                              ) : (
+                                <>
+                                  <div>
+                                    <span>FLOW IMBALANCE</span>
+                                    <strong>
+                                      {(
+                                        (run.result.mass_imbalance || 0) * 100
+                                      ).toExponential(2)}
+                                      <small>%</small>
+                                    </strong>
+                                  </div>
+                                  <div>
+                                    <span>INLET FLOW</span>
+                                    <strong>
+                                      {run.result.volume_flow_in_m3_s?.toExponential(
+                                        3,
+                                      )}
+                                      <small>m³/s</small>
+                                    </strong>
+                                  </div>
+                                </>
+                              )}
                             </div>
                           )}
                           <Plot run={run} />
+                          {run.result.outlets && (
+                            <div className="outlet-results">
+                              <h3>Outlet flow distribution</h3>
+                              <p>
+                                Static pressure differences use area means at
+                                each port. The headline drop weights outlet
+                                pressure by its outward flow.
+                              </p>
+                              <table>
+                                <thead>
+                                  <tr>
+                                    <th>Outlet</th>
+                                    <th>Outward flow (m³/s)</th>
+                                    <th>Share</th>
+                                    <th>Pressure drop (Pa)</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {Object.entries(run.result.outlets).map(
+                                    ([name, value]) => (
+                                      <tr key={name}>
+                                        <td>{name.replace("_", " ")}</td>
+                                        <td>
+                                          {value.volume_flow_m3_s.toExponential(
+                                            5,
+                                          )}
+                                        </td>
+                                        <td>
+                                          {(value.flow_fraction * 100).toFixed(
+                                            2,
+                                          )}
+                                          %
+                                        </td>
+                                        <td>
+                                          {value.pressure_drop_pa.toPrecision(
+                                            6,
+                                          )}
+                                        </td>
+                                      </tr>
+                                    ),
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
                           <div className="evidence-checks">
                             {run.result.checks.map((c, i) => (
                               <CheckRow key={i} item={c} />

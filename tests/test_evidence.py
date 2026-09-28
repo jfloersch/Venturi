@@ -129,3 +129,19 @@ def test_nonfinite_last_residual_cannot_reuse_earlier_good_value(tmp_path):
         out.write("\nSolving for p, Initial residual = nan, Final residual = nan\nEnd\n")
     result = reference_evidence(case, PipeSpec())
     assert result["status"] == "failed"
+
+
+def test_failure_report_uses_utf8_even_when_native_library_changes_locale(tmp_path):
+    import locale
+
+    from venturi.evidence import write_report
+
+    original = locale.setlocale(locale.LC_CTYPE)
+    try:
+        locale.setlocale(locale.LC_CTYPE, "C")
+        write_report(
+            tmp_path, {"status": "failed", "checks": [], "limitations": ["Study Ω"]}, {}, {}
+        )
+        assert "Study Ω" in (tmp_path / "report.html").read_text(encoding="utf-8")
+    finally:
+        locale.setlocale(locale.LC_CTYPE, original)

@@ -88,10 +88,12 @@ class BoundarySelection(StrictModel):
 
 
 class RunRequest(StrictModel):
-    kind: Literal["reference", "cad_mesh"]
+    kind: Literal["reference", "cad_mesh", "internal_mesh", "internal_flow"]
     request_id: str = Field(pattern=r"^[a-zA-Z0-9_-]{8,80}$")
     geometry_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
-    study: "StudySpec | None" = None
+    study: "StudySpec | InternalFlowStudy | None" = None
+    mesh_run_id: str | None = Field(default=None, pattern=r"^[a-zA-Z0-9_-]{1,80}$")
+    approved_mesh_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     retry_of: str | None = Field(default=None, pattern=r"^[a-zA-Z0-9_-]{1,80}$")
     reason: str = Field(default="User requested execution", min_length=1, max_length=500)
 
@@ -101,6 +103,25 @@ class RunRequest(StrictModel):
             raise ValueError("The CAD boundary check does not accept a reference study.")
         if self.kind == "reference" and self.geometry_hash is not None:
             raise ValueError("The pipe reference does not solve imported STEP geometry.")
+        if (
+            self.kind == "reference"
+            and self.study is not None
+            and not isinstance(self.study, StudySpec)
+        ):
+            raise ValueError("Reference execution requires a pipe study.")
+        if self.kind.startswith("internal_"):
+            if not isinstance(self.study, InternalFlowStudy):
+                raise ValueError("STEP execution requires an internal-flow study.")
+            if (
+                self.geometry_hash is not None
+                and self.geometry_hash != self.study.selection.geometry_hash
+            ):
+                raise ValueError("Request and study geometry revisions differ.")
+        if self.kind == "internal_flow":
+            if not self.mesh_run_id or not self.approved_mesh_hash:
+                raise ValueError("Approve a completed mesh by run ID and mesh hash before solving.")
+        elif self.mesh_run_id is not None or self.approved_mesh_hash is not None:
+            raise ValueError("Mesh approval only applies to internal-flow execution.")
         return self
 
 
@@ -123,6 +144,58 @@ class StudySpec(StrictModel):
     )
     pipe: PipeSpec = Field(default_factory=PipeSpec)
     resources: ResourcePolicy = Field(default_factory=ResourcePolicy)
+
+
+class InternalMeshSpec(StrictModel):
+    cell_size_m: float = Field(gt=0, le=1)
+    maximum_cells: int = Field(default=250000, ge=1000, le=400000)
+    timeout_seconds: int = Field(default=600, ge=1, le=1800)
+
+
+class InternalFlowStudy(StrictModel):
+    schema_version: Literal["venturi.internal-study.v1"] = "venturi.internal-study.v1"
+    name: str = Field(default="Prepared STEP internal flow", min_length=1, max_length=160)
+    recipe: Literal["laminar-internal/1"] = "laminar-internal/1"
+    physics: Literal["steady-incompressible-newtonian-laminar"] = (
+        "steady-incompressible-newtonian-laminar"
+    )
+    units: Literal["SI"] = "SI"
+    quantity: Literal["inlet-to-outlet-static-pressure-and-flow-split"] = (
+        "inlet-to-outlet-static-pressure-and-flow-split"
+    )
+    selection: BoundarySelection
+    flow_rate_m3_s: float = Field(gt=0, le=1)
+    density_kg_m3: float = Field(default=1000, gt=0, le=20000)
+    dynamic_viscosity_pa_s: float = Field(default=0.001, gt=0, le=100)
+    inlet_profile: Literal["uniform-normal"] = "uniform-normal"
+    outlet_pressure_pa: Literal[0] = 0
+    mesh: InternalMeshSpec
+    max_iterations: int = Field(default=600, ge=100, le=2000)
+    timeout_seconds: int = Field(default=900, ge=1, le=1800)
+    resources: ResourcePolicy = Field(
+        default_factory=lambda: ResourcePolicy(wall_time_seconds=2400, disk_mb=2048)
+    )
+
+    @model_validator(mode="after")
+    def supported(self):
+        roles = list(self.selection.assignments.values())
+        if roles.count("inlet") != 1 or not 1 <= roles.count("outlet") <= 4 or "wall" not in roles:
+            raise ValueError(
+                "Internal flow requires one inlet face, one to four outlet faces, and walls."
+            )
+        viscosity = self.dynamic_viscosity_pa_s / self.density_kg_m3
+        if not math.isfinite(viscosity) or viscosity <= 0:
+            raise ValueError("Kinematic viscosity must be finite and positive.")
+        return self
+
+
+def parse_study(value: dict) -> StudySpec | InternalFlowStudy:
+    cls = (
+        InternalFlowStudy
+        if value.get("schema_version") == "venturi.internal-study.v1"
+        else StudySpec
+    )
+    return cls.model_validate(value)
 
 
 RunRequest.model_rebuild()

@@ -5,7 +5,7 @@ permissions:
 jobs:
   worker:
     runs-on: ubuntu-22.04
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -17,9 +17,19 @@ jobs:
       - run: uv run ruff format --check src tests scripts
       - run: python3 scripts/bootstrap_worker.py
       - run: uv run venturi doctor
-      - run: uv run pytest -q
+      - run: uv run pytest -q --basetemp=artifacts/ci-acceptance
         env:
           VENTURI_INTEGRATION: '1'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: worker-test-evidence
+          path: |
+            artifacts/ci-acceptance/**/result.json
+            artifacts/ci-acceptance/**/report.html
+            artifacts/ci-acceptance/**/mesh-audit.json
+            artifacts/ci-acceptance/**/*.log
+            artifacts/ci-acceptance/**/developed-gradient.json
   desktop:
     strategy:
       fail-fast: false
@@ -46,7 +56,7 @@ jobs:
       - run: npm run tauri build -- --no-bundle
   browser:
     runs-on: ubuntu-22.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -66,4 +76,5 @@ jobs:
           name: browser-test-evidence
           path: |
             artifacts/screenshots
+            artifacts/milestone-1b/*.png
             apps/desktop/test-results

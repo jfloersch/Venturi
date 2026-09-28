@@ -1065,3 +1065,109 @@ footer {
 .study-record code {
   overflow-wrap: anywhere;
 }
+
+.import-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  margin-bottom: 22px;
+  border: 1px solid var(--border, #dce4d8);
+  border-radius: 8px;
+  background: #fff;
+}
+.import-card > div {
+  flex: 1;
+}
+.import-card p,
+.flow-setup p,
+.mesh-review p,
+.outlet-results p {
+  color: #70897a;
+  line-height: 1.6;
+  font-size: 13px;
+}
+.import-button {
+  position: relative;
+  overflow: hidden;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.import-button input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+}
+.flow-setup {
+  background: white;
+  border: 1px solid #dce4d8;
+  border-radius: 8px;
+  padding: 24px;
+  margin-top: 24px;
+}
+.flow-setup .panel-heading {
+  padding: 0 0 16px;
+}
+.flow-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin: 20px 0;
+}
+.flow-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: #365747;
+  font-size: 12px;
+}
+.flow-fields input {
+  border: 1px solid #d6dfd2;
+  border-radius: 5px;
+  padding: 12px;
+  min-width: 0;
+  color: #294a40;
+  background: #f8faf7;
+  font: inherit;
+}
+.mesh-review {
+  margin: 24px;
+  padding: 24px;
+  border: 1px solid #d6dfd2;
+  border-radius: 8px;
+}
+.mesh-review .viewer-wrap {
+  height: 420px;
+}
+.mesh-identity code {
+  overflow-wrap: anywhere;
+  font-size: 10px;
+}
+.outlet-results {
+  padding: 24px;
+}
+.outlet-results table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.outlet-results th,
+.outlet-results td {
+  text-align: left;
+  padding: 12px;
+  border-bottom: 1px solid #dce4d8;
+}
+.face-list {
+  max-height: 320px;
+  overflow: auto;
+}
+@media (max-width: 900px) {
+  .import-card {
+    flex-wrap: wrap;
+  }
+  .outlet-results {
+    overflow: auto;
+  }
+}

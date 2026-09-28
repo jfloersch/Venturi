@@ -16,10 +16,17 @@ def dictionary(path: Path, body: str, cls: str = "dictionary") -> None:
     )
 
 
-def control(case: Path, iterations: int = 500, functions: bool = True) -> None:
+def control(
+    case: Path,
+    iterations: int = 500,
+    functions: bool = True,
+    *,
+    patches: list[str] | None = None,
+    magnitude_flux: bool = False,
+) -> None:
     function_text = ""
     if functions:
-        for patch in ("inlet", "outlet"):
+        for patch in patches or ("inlet", "outlet"):
             for field, operation in (("p", "areaAverage"), ("phi", "sum")):
                 function_text += f"""
                 {patch}_{field} {{
@@ -29,6 +36,14 @@ def control(case: Path, iterations: int = 500, functions: bool = True) -> None:
                     patch {patch};
                     operation {operation}; fields ({field});
                     writeFields false; log false;
+                }}
+                """
+            if magnitude_flux:
+                function_text += f"""
+                {patch}_phi_mag {{
+                    type surfaceFieldValue; libs ("libfieldFunctionObjects.so");
+                    writeControl timeStep; writeInterval 1; patch {patch};
+                    operation sumMag; fields (phi); writeFields false; log false;
                 }}
                 """
     dictionary(
@@ -184,19 +199,30 @@ def compile_solver(case: Path, spec: PipeSpec) -> None:
     control(case, spec.max_iterations)
 
 
-def cad_mesh(case: Path, geometry: dict) -> None:
+def cad_mesh(
+    case: Path,
+    geometry: dict,
+    *,
+    cell_size: float | None = None,
+    inside_point: list[float] | None = None,
+    patches: list[str] | None = None,
+    maximum_cells: int = 400000,
+    background_limit: int = 400000,
+    strict_quality: bool = False,
+) -> None:
     dictionary(
         case / "system/meshQualityDict",
-        '#includeEtc "caseDicts/mesh/generation/meshQualityDict.cfg"',
+        '#includeEtc "caseDicts/mesh/generation/meshQualityDict.cfg"'
+        + ("\nminTetQuality 1e-12; minVol 1e-18;" if strict_quality else ""),
     )
     bounds = geometry["bounds_m"]
     widths = [bounds[i + 3] - bounds[i] for i in range(3)]
-    h = min(widths) / 16
+    h = cell_size or min(widths) / 16
     low = [bounds[i] - h * 2 for i in range(3)]
     high = [bounds[i + 3] + h * 2 for i in range(3)]
     n = [math.ceil((high[i] - low[i]) / h) for i in range(3)]
-    if math.prod(n) > 400_000:
-        raise ValueError("Geometry aspect ratio exceeds the M0 mesh budget.")
+    if math.prod(n) > background_limit:
+        raise ValueError(f"Geometry exceeds the {background_limit:,}-cell background mesh budget.")
     x, y, z = low
     X, Y, Z = high
     vertices = [
@@ -219,16 +245,25 @@ def cad_mesh(case: Path, geometry: dict) -> None:
         boundary (background {{ type patch; faces ((0 3 2 1) (4 5 6 7) (0 1 5 4) (1 2 6 5) (2 3 7 6) (3 0 4 7)); }});
     """,
     )
-    # M0 explicitly supports the generated convex pipe. A general interior-point
-    # finder and arbitrary prepared-CAD meshing belong to milestone 1b.
-    inside = [(bounds[i] + bounds[i + 3]) / 2 + h * 0.017 for i in range(3)]
+    # The reference spike uses its convex center; imported CAD supplies a classified point.
+    inside = inside_point or [(bounds[i] + bounds[i + 3]) / 2 + h * 0.017 for i in range(3)]
+    patch_names = patches or ["inlet", "outlet", "wall"]
+    if strict_quality:
+        dictionary(
+            case / "system/surfaceFeaturesDict",
+            "surfaces ("
+            + " ".join(f'"{p}.stl"' for p in patch_names)
+            + "); includedAngle 150; subsetFeatures { nonManifoldEdges no; openEdges yes; }",
+        )
+    features = (
+        " ".join(f'{{ file "{p}.eMesh"; level 0; }}' for p in patch_names) if strict_quality else ""
+    )
     regions = " ".join(
-        f'{role} {{ type triSurfaceMesh; file "{role}.stl"; }}'
-        for role in ("inlet", "outlet", "wall")
+        f'{role} {{ type triSurfaceMesh; file "{role}.stl"; }}' for role in patch_names
     )
     refinement = " ".join(
         f"{role} {{ level (0 0); patchInfo {{ type {'wall' if role == 'wall' else 'patch'}; }} }}"
-        for role in ("inlet", "outlet", "wall")
+        for role in patch_names
     )
     dictionary(
         case / "system/snappyHexMeshDict",
@@ -237,13 +272,13 @@ def cad_mesh(case: Path, geometry: dict) -> None:
         castellatedMesh on; snap on; addLayers off;
         geometry {{ {regions} }}
         castellatedMeshControls {{
-            maxLocalCells 400000; maxGlobalCells 400000;
+            maxLocalCells {max(maximum_cells, math.prod(n))}; maxGlobalCells {max(maximum_cells, math.prod(n))};
             minRefinementCells 0; nCellsBetweenLevels 3;
-            features (); refinementSurfaces {{ {refinement} }}
+            features ({features}); refinementSurfaces {{ {refinement} }}
             refinementRegions {{}}
             insidePoint ({" ".join(map(str, inside))});
         }}
-        snapControls {{ nSmoothPatch 3; tolerance 2.0; nSolveIter 50; nRelaxIter 5; nFeatureSnapIter 10; implicitFeatureSnap true; explicitFeatureSnap false; multiRegionFeatureSnap false; }}
+        snapControls {{ nSmoothPatch 3; tolerance 2.0; nSolveIter 50; nRelaxIter 5; nFeatureSnapIter 10; implicitFeatureSnap {"false" if strict_quality else "true"}; explicitFeatureSnap {"true" if strict_quality else "false"}; multiRegionFeatureSnap false; }}
         addLayersControls {{ layers {{}} relativeSizes true; expansionRatio 1.2; finalLayerThickness 0.5; minThickness 0.001; }}
         writeFlags (); mergeTolerance 1e-6;
     """,

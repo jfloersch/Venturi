@@ -8,7 +8,7 @@ from pathlib import Path
 from .artifacts import verify
 from .jobs import file_lock, finish_attempt, read_json, update_status
 from .models import BoundarySelection, ResourcePolicy, RunRequest, StudySpec, canonical_hash
-from .recipes import pipe_recipe
+from .recipes import freeze_study
 from .runtime import RunCancelled, check_execution, event, execution_context
 from .workflows import mesh_spike, reference
 
@@ -38,12 +38,15 @@ def execute(folder: Path) -> None:
             if canonical_hash(request.model_dump()) != state["request_hash"]:
                 raise ValueError("Frozen request was modified before execution.")
             study = request.study or StudySpec()
-            if request.kind == "reference":
+            if request.kind != "cad_mesh":
                 frozen = read_json(folder / "study.json")
                 if canonical_hash(frozen) != state["study_hash"] or frozen != study.model_dump():
                     raise ValueError("Frozen study was modified before execution.")
                 recipe = read_json(folder / "recipe.json")
-                if canonical_hash(recipe) != state["recipe_hash"] or recipe != pipe_recipe():
+                if (
+                    canonical_hash(recipe) != state["recipe_hash"]
+                    or recipe != freeze_study(study)["recipe"]
+                ):
                     raise ValueError("Frozen recipe was modified before execution.")
             update_status(folder, status="running", stage="Preparing attempt")
             event(folder, "attempt_started")
@@ -53,7 +56,7 @@ def execute(folder: Path) -> None:
                 update_status(folder, stage=stage)
                 event(folder, "stage", stage=stage)
 
-            policy = study.resources if request.kind == "reference" else ResourcePolicy()
+            policy = study.resources if request.kind != "cad_mesh" else ResourcePolicy()
             with execution_context(folder, policy):
                 check_execution(cancel)
                 if request.kind == "reference":
@@ -66,6 +69,20 @@ def execute(folder: Path) -> None:
                         cancel=cancel,
                         progress=progress,
                         replay_source=replay if replay.exists() else None,
+                    )
+                elif request.kind.startswith("internal_"):
+                    from .internal import execute_internal
+
+                    replay = folder / "replay-source"
+                    result = execute_internal(
+                        folder,
+                        study,
+                        solve=request.kind == "internal_flow",
+                        approved_hash=request.approved_mesh_hash,
+                        mesh_run_id=request.mesh_run_id,
+                        replay_source=replay if replay.exists() else None,
+                        cancel=cancel,
+                        progress=progress,
                     )
                 else:
                     result = mesh_spike(

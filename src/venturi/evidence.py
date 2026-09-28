@@ -33,7 +33,38 @@ def read_series(path: Path) -> np.ndarray:
     return data
 
 
-def validate_field(path: Path, dimensions: str, components: int) -> None:
+def field_values(
+    text: str, key: str, components: int, expected_count: int | None = None
+) -> np.ndarray:
+    field = re.search(rf"\b{key}\s+(uniform|nonuniform)\s+(.+?);", text, re.S)
+    if not field:
+        raise ValueError(f"Missing {key} field values.")
+    if field[1] == "uniform":
+        values = [float(x) for x in field[2].strip().strip("()").split()]
+        if len(values) != components:
+            raise ValueError("Malformed uniform field.")
+        values = values * (expected_count if expected_count is not None else 1)
+        count = len(values)
+    else:
+        body = re.fullmatch(r"List<(scalar|vector)>\s+(\d+)\s*\((.*)\)\s*", field[2], re.S)
+        if not body or body[1] != ("scalar" if components == 1 else "vector"):
+            raise ValueError("Malformed nonuniform field.")
+        if expected_count is not None and int(body[2]) != expected_count:
+            raise ValueError("Field count does not match the executed mesh.")
+        values = [float(x) for x in body[3].replace("(", " ").replace(")", " ").split()]
+        count = int(body[2]) * components
+    if (
+        len(values) != count
+        or (not values and expected_count != 0)
+        or not all(math.isfinite(x) for x in values)
+    ):
+        raise ValueError("Incomplete or non-finite field values.")
+    return np.array(values).reshape(-1, components)
+
+
+def validate_field(
+    path: Path, dimensions: str, components: int, expected_count: int | None = None
+) -> None:
     if not path.is_file():
         raise ValueError(f"Missing final field: {path.name}")
     text = path.read_text()
@@ -45,20 +76,7 @@ def validate_field(path: Path, dimensions: str, components: int) -> None:
     tokens = re.findall(r"(?<![\w.])[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?(?!\w)", text)
     if any(not math.isfinite(float(value)) for value in tokens):
         raise ValueError(f"Non-finite final field: {path.name}")
-    field = re.search(r"internalField\s+(uniform|nonuniform)\s+(.+?);", text, re.S)
-    if not field:
-        raise ValueError(f"Missing internal field: {path.name}")
-    if field[1] == "uniform":
-        values = [float(x) for x in field[2].strip().strip("()").split()]
-        count = components
-    else:
-        body = re.fullmatch(r"List<(scalar|vector)>\s+(\d+)\s*\((.*)\)\s*", field[2], re.S)
-        if not body or body[1] != ("scalar" if components == 1 else "vector"):
-            raise ValueError(f"Malformed internal field: {path.name}")
-        values = [float(x) for x in body[3].replace("(", " ").replace(")", " ").split()]
-        count = int(body[2]) * components
-    if len(values) != count or not values or not all(math.isfinite(x) for x in values):
-        raise ValueError(f"Incomplete or non-finite field: {path.name}")
+    field_values(text, "internalField", components, expected_count)
 
 
 def reference_evidence(case: Path, spec: PipeSpec) -> dict:
@@ -234,13 +252,19 @@ def write_report(folder: Path, result: dict, spec: dict, environment: dict) -> N
             color="#087f70",
             label="OpenFOAM",
         )
-        ax.axhline(
-            result["expected_pressure_drop_pa"], color="#b46d21", linestyle="--", label="Analytical"
-        )
+        if "expected_pressure_drop_pa" in result:
+            ax.axhline(
+                result["expected_pressure_drop_pa"],
+                color="#b46d21",
+                linestyle="--",
+                label="Analytical",
+            )
         ax.set(
             xlabel="Iteration",
             ylabel="Static pressure difference (Pa)",
-            title="Pipe reference · area-averaged inlet minus outlet",
+            title="STEP internal flow · inlet to outlets"
+            if "outlets" in result
+            else "Pipe reference · area-averaged inlet minus outlet",
         )
         ax.legend()
         ax.grid(alpha=0.15)
@@ -257,6 +281,21 @@ def write_report(folder: Path, result: dict, spec: dict, environment: dict) -> N
         )
         (folder / "metrics.csv").write_text(csv)
         artifacts["metrics.csv"] = file_hash(folder / "metrics.csv")
+        if "outlets" in result:
+            names = list(result["outlets"])
+            (folder / "outlet-flows.csv").write_text(
+                "iteration,"
+                + ",".join(f"{n}_m3_s" for n in names)
+                + "\n"
+                + "\n".join(
+                    str(row["iteration"])
+                    + ","
+                    + ",".join(f"{row['outlet_flows_m3_s'][n]:.12g}" for n in names)
+                    for row in result["history"]
+                )
+                + "\n"
+            )
+            artifacts["outlet-flows.csv"] = file_hash(folder / "outlet-flows.csv")
     write_json(folder / "result.json", result)
     esc = html.escape
     rows = "".join(
@@ -271,15 +310,41 @@ def write_report(folder: Path, result: dict, spec: dict, environment: dict) -> N
     )
     summary = ""
     if "pressure_drop_pa" in result:
-        summary = f"<p><strong>Pressure drop: {result['pressure_drop_pa']:.8g} Pa</strong> · analytical {result['expected_pressure_drop_pa']:.8g} Pa · relative difference {result['relative_error']:.3%}</p>"
+        summary = f"<p><strong>Pressure drop: {result['pressure_drop_pa']:.8g} Pa</strong>"
+        if "expected_pressure_drop_pa" in result:
+            summary += f" · analytical {result['expected_pressure_drop_pa']:.8g} Pa · relative difference {result['relative_error']:.3%}"
+        summary += "</p>"
+    if "outlets" in result:
+        summary += (
+            "<p>"
+            + esc(result["pressure_convention"])
+            + "</p><table><tr><th>Outlet</th><th>Outward flow (m³/s)</th><th>Flow share</th><th>Pressure drop (Pa)</th></tr>"
+        )
+        summary += (
+            "".join(
+                f"<tr><td>{esc(n)}</td><td>{v['volume_flow_m3_s']:.8g}</td><td>{v['flow_fraction']:.3%}</td><td>{v['pressure_drop_pa']:.8g}</td></tr>"
+                for n, v in result["outlets"].items()
+            )
+            + "</table>"
+        )
+    if "mesh_hash" in result:
+        summary += f"<p>Mesh <code>{esc(result['mesh_hash'])}</code> · {result['mesh']['cells']} cells · <a href='source.step'>Source STEP</a> · <a href='selection.json'>Confirmed ports</a> · <a href='mesh-audit.json'>Mesh checks</a></p>"
     identity = ""
     if "study_hash" in result:
-        identity = f'<p>Recipe <code>{esc(result["recipe"])}</code> · study <code>{esc(result["study_hash"])}</code></p><p><a href="study.json">Frozen study</a> · <a href="recipe.json">Recipe and criteria</a> · <a href="provenance.json">Provenance</a> · <a href="native-inputs.json">Native input hashes</a></p>'
-    (
-        folder / "report.html"
-    ).write_text(f"""<!doctype html><html lang="en"><meta charset="utf-8"><title>Venturi reference evidence</title>
+        identity = f'<p>Recipe <code>{esc(result["recipe"])}</code> · study <code>{esc(result["study_hash"])}</code></p><p><a href="study.json">Frozen study</a> · <a href="recipe.json">Recipe and criteria</a> · <a href="provenance.json">Provenance</a></p>'
+        if (folder / "native-inputs.json").exists():
+            identity += '<p><a href="native-inputs.json">Native input hashes</a></p>'
+    title = (
+        "STEP internal-flow evidence"
+        if result.get("workflow", "").startswith("internal_")
+        else "reference evidence"
+    )
+    (folder / "report.html").write_text(
+        f"""<!doctype html><html lang="en"><meta charset="utf-8"><title>Venturi {title}</title>
     <style>body{{font:16px system-ui;max-width:1000px;margin:50px auto;padding:24px;color:#18312e}}table{{border-collapse:collapse;width:100%}}td,th{{padding:12px;text-align:left;border-bottom:1px solid #ddd}}img{{max-width:100%}}code{{overflow-wrap:anywhere}}</style>
-    <h1>Venturi · reference evidence</h1><p>Run <code>{esc(folder.name)}</code> · {esc(result["status"])}</p>
-    <p>This is a compatibility benchmark with provisional criteria, not a qualified engineering result.</p>
+    <h1>Venturi · {title}</h1><p>Run <code>{esc(folder.name)}</code> · {esc(result["status"])}</p>
+    <p>This uses provisional numerical criteria, not a qualified engineering result.</p>
     {summary}{identity}{chart}<table><tr><th>Check</th><th>Outcome</th><th>Evidence</th></tr>{rows}</table>
-    <h2>Limitations</h2><ul>{limitations}</ul><p>Complete metrics, inputs, environment, and artifact hashes: <a href="result.json">result.json</a>.</p></html>""")
+    <h2>Limitations</h2><ul>{limitations}</ul><p>Complete metrics, inputs, environment, and artifact hashes: <a href="result.json">result.json</a>.</p></html>""",
+        encoding="utf-8",
+    )

@@ -31,7 +31,7 @@ def seal(folder: Path) -> dict:
 
 
 def verify(folder: Path) -> dict:
-    manifest = json.loads((folder / "manifest.json").read_text())
+    manifest = json.loads((folder / "manifest.json").read_text(encoding="utf-8"))
     if manifest.get("schema_version") != "venturi.artifacts.v1":
         raise ValueError("Unsupported artifact manifest version.")
     files = manifest.get("files")

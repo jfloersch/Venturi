@@ -1,4 +1,4 @@
-# Testing Venturi milestone 1a
+# Testing Venturi milestones 1a and 1b
 
 ## Quick manual run
 
@@ -14,7 +14,7 @@ Follow the root README setup, then launch `uv run python scripts/dev.py` (browse
 8. Export the completed run. Open the HTML report from the extracted ZIP and inspect `result.json`, `case`, `logs`, VTK fields, and CSV metrics.
 9. Start another run and cancel it. Expect a cancelled state and preserved partial logs. Restart the worker and verify that completed runs still appear.
 
-The pipe reference uses a fixed numerical mesh and fixed boundary conditions, independently of the CAD boundary selections. The CAD workflow tests those selections. The interface labels these as separate checks; connecting arbitrary study geometry to a solver is milestone 1b.
+The pipe reference uses a fixed numerical mesh and fixed boundary conditions, independently of the CAD boundary selections. The CAD workflow tests those selections. The interface labels these as separate checks; the separate imported-STEP workflow connects explicitly assigned ports to the solver in milestone 1b.
 
 ## Automated checks
 
@@ -104,3 +104,39 @@ Manual lifecycle check: start `venturi run fixtures/pipe-study.json --detach`,
 stop/restart only the API, and confirm `venturi status` and the workbench reconnect
 to the same run. Stopping the development launcher now leaves active jobs running;
 use the explicit cancel action when you intend to stop a simulation.
+
+## Milestone 1b acceptance
+
+`tests/test_internal.py` checks strict studies, conservative flow/mesh bounds,
+explicit revision-bound planar ports, immutable imports, unsupported geometry,
+upload/reopen, missing or stale approval, malformed fields and histories, and
+numerical failure conditions. Invalid STEP entities are rejected before OCCT can
+silently substitute missing unit values.
+
+`tests/test_internal_integration.py` runs actual CLI import/template/validation,
+meshing, review-hash approval, solving and artifact verification for a circular
+pipe, 90-degree bend, two-outlet T-manifold and rectangular duct. It generates two
+rotated/translated ducts at test time. It checks the pipe's developed pressure
+gradient against Poiseuille within 5%, manifold symmetry within 5 percentage
+points, portable replay including every outlet flow, and refusal of edited
+native dictionaries, source bytes and runtime hashes. A deliberately coarse
+manifold must fail mesh checks and be refused for solving.
+
+The browser test imports the manifold, assigns ports, retains study edits across
+reload, displays the actual mesh, approves it, solves, checks the two outlet rows,
+exports the archive, reopens the result, and verifies that a blank mesh renderer
+blocks approval. It runs alongside the original
+reference, picking, cancellation and retry checks. Restore reference geometry
+before rerunning legacy manual tests after an import.
+
+For retained acceptance evidence, choose a new directory (pytest **clears** an
+existing `--basetemp`):
+
+```bash
+VENTURI_INTEGRATION=1 uv run pytest --basetemp=artifacts/m1b-acceptance-new
+```
+
+These synthetic development/held-out cases establish bounded workflow behavior,
+not general accuracy for every CAD passage. Port screening does not detect all
+internal restrictions. Independent CFD review, grid-convergence studies and
+experimental validation remain outside this implementation acceptance.

@@ -127,3 +127,125 @@ test("cancellation retains a report and retry creates a separate attempt", async
     /^venturi-.*\.zip$/,
   );
 });
+
+test("prepared manifold: import, explicit ports, mesh review, flow split and export", async ({
+  page,
+}) => {
+  test.setTimeout(300_000);
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  const source = "../../fixtures/internal/manifold.step";
+  const study = JSON.parse(
+    readFileSync("../../fixtures/internal/manifold.study.json", "utf8"),
+  );
+  await page.goto("/#token=venturi-e2e-session-only");
+  await expect(
+    page.getByText("worker connected", { exact: false }),
+  ).toBeVisible();
+  await page.getByLabel("Import STEP", { exact: true }).setInputFiles(source);
+  await expect(
+    page.getByRole("heading", { name: "Set up internal flow" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Build mesh for review" }),
+  ).toBeDisabled();
+  const response = await page.request.get("http://127.0.0.1:8766/v1/geometry", {
+    headers: { Authorization: "Bearer venturi-e2e-session-only" },
+  });
+  const geometry = await response.json();
+  for (const face of geometry.faces) {
+    const role = study.selection.assignments[face.id];
+    if (role === "wall") continue;
+    await page.locator(".face-list button").nth(face.index).click();
+    await page.getByLabel("SELECTED FACE ROLE").selectOption(role);
+  }
+  await page.getByRole("button", { name: "Save assignments" }).click();
+  await expect(
+    page.getByRole("button", { name: "Assignments saved" }),
+  ).toBeVisible();
+  await page.getByLabel("Inlet flow (m³/s)").fill(String(study.flow_rate_m3_s));
+  await page
+    .getByLabel("Mesh cell size (mm)")
+    .fill(String(study.mesh.cell_size_m * 1000));
+  await page.reload();
+  await expect(page.getByLabel("Mesh cell size (mm)")).toHaveValue("0.625");
+  await page.screenshot({
+    path: "../../artifacts/milestone-1b/browser-import.png",
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "Build mesh for review" }).click();
+  await expect(page.locator(".status-pill")).toHaveText("passed", {
+    timeout: 90_000,
+  });
+  await expect(
+    page.getByRole("heading", { name: "Review this mesh and saved study" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Approve saved study & solve" }),
+  ).toBeEnabled();
+  await expect(
+    page.getByTestId("geometry-viewer").locator("canvas"),
+  ).toBeVisible();
+  const meshId = await page.locator(".run-heading code").textContent();
+  await page.reload();
+  await page.getByRole("button", { name: "Runs & evidence" }).click();
+  await expect(page.locator(".run-heading code")).toHaveText(meshId!);
+  await expect(
+    page.getByRole("button", { name: "Approve saved study & solve" }),
+  ).toBeEnabled();
+  await page.screenshot({
+    path: "../../artifacts/milestone-1b/browser-mesh.png",
+    fullPage: true,
+  });
+  await page
+    .getByRole("button", { name: "Approve saved study & solve" })
+    .click();
+  await expect(page.locator(".run-heading code")).not.toHaveText(meshId!);
+  await expect(page.locator(".status-pill")).toHaveText("passed", {
+    timeout: 180_000,
+  });
+  await expect(page.locator(".outlet-results tbody tr")).toHaveCount(2);
+  await expect(page.locator(".evidence-checks .fail")).toHaveCount(0);
+  await expect(page.locator(".outlet-results")).toContainText("50.0");
+  await page.screenshot({
+    path: "../../artifacts/milestone-1b/browser-flow.png",
+    fullPage: true,
+  });
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export complete run" }).click();
+  const download = await downloadPromise;
+  await download.saveAs("../../artifacts/milestone-1b/browser-manifold.zip");
+  expect(
+    readFileSync((await download.path())!)
+      .subarray(0, 2)
+      .toString(),
+  ).toBe("PK");
+  await page.reload();
+  await page.getByRole("button", { name: "Runs & evidence" }).click();
+  await expect(page.locator(".status-pill")).toHaveText("passed");
+  await expect(page.locator(".outlet-results tbody tr")).toHaveCount(2);
+  expect(errors).toEqual([]);
+  // A fetched mesh is insufficient for approval if the renderer produces a blank frame.
+  await page.addInitScript(() => {
+    WebGL2RenderingContext.prototype.readPixels = function (
+      ...args: unknown[]
+    ) {
+      const pixels = args[6];
+      if (pixels instanceof Uint8Array) pixels.fill(0);
+    } as typeof WebGL2RenderingContext.prototype.readPixels;
+  });
+  await page.reload();
+  await page
+    .getByRole("button", {
+      name: new RegExp(
+        `STEP mesh review ${meshId!.replace(/^RUN /, "").slice(0, 8)}`,
+      ),
+    })
+    .click();
+  await expect(page.locator(".mesh-review").getByRole("alert")).toContainText(
+    "did not draw",
+  );
+  await expect(
+    page.getByRole("button", { name: "Approve saved study & solve" }),
+  ).toBeDisabled();
+});

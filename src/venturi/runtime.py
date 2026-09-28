@@ -19,7 +19,7 @@ from pathlib import Path
 from . import PROTOCOL_VERSION, __version__
 from .models import ResourcePolicy, file_hash, write_json
 
-ALLOWED = {"blockMesh", "checkMesh", "snappyHexMesh", "foamRun", "foamToVTK"}
+ALLOWED = {"blockMesh", "checkMesh", "snappyHexMesh", "surfaceFeatures", "foamRun", "foamToVTK"}
 
 
 def find_foam_root() -> Path | None:

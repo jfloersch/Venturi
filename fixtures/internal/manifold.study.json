@@ -1,0 +1,35 @@
+{
+  "schema_version": "venturi.internal-study.v1",
+  "name": "Development fixture: manifold",
+  "recipe": "laminar-internal/1",
+  "physics": "steady-incompressible-newtonian-laminar",
+  "units": "SI",
+  "quantity": "inlet-to-outlet-static-pressure-and-flow-split",
+  "selection": {
+    "geometry_hash": "087c012aca0b254d8cc15bc2c732d62fb0badd15f80d0d5335e43305167d7534",
+    "assignments": {
+      "face_0ee931c905af7ad3": "wall",
+      "face_9a2d50514244382f": "wall",
+      "face_31c73b3d54eceef0": "inlet",
+      "face_cec5d59a563ac5cd": "outlet",
+      "face_8e8cabc457e7438c": "outlet"
+    }
+  },
+  "flow_rate_m3_s": 1.5707963267948966e-07,
+  "density_kg_m3": 1000.0,
+  "dynamic_viscosity_pa_s": 0.001,
+  "inlet_profile": "uniform-normal",
+  "outlet_pressure_pa": 0,
+  "mesh": {
+    "cell_size_m": 0.000625,
+    "maximum_cells": 250000,
+    "timeout_seconds": 600
+  },
+  "max_iterations": 600,
+  "timeout_seconds": 900,
+  "resources": {
+    "wall_time_seconds": 2400,
+    "memory_mb": 4096,
+    "disk_mb": 2048
+  }
+}

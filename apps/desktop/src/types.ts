@@ -10,6 +10,8 @@ export type Face = {
   centroid_m: number[];
   surface_type: string;
   cells: number[];
+  normal?: number[] | null;
+  perimeter_m?: number;
 };
 export type Role = "inlet" | "outlet" | "wall";
 export type Geometry = {
@@ -20,6 +22,8 @@ export type Geometry = {
   points: number[];
   faces: Face[];
   selection: { geometry_hash: string; assignments: Record<string, Role> };
+  source_name?: string;
+  imported?: boolean;
 };
 export type Diagnostics = {
   protocol_version: string;
@@ -48,10 +52,36 @@ export type Result = {
   study_hash?: string;
   recipe_hash?: string;
   inputs?: { name?: string; pipe?: Record<string, number> };
+  mesh_hash?: string;
+  mesh?: { cells: number; volume_m3: number; regions: number };
+  volume_flow_in_m3_s?: number;
+  outlets?: Record<
+    string,
+    {
+      volume_flow_m3_s: number;
+      flow_fraction: number;
+      pressure_drop_pa: number;
+      backflow_fraction: number;
+    }
+  >;
 };
+export type InternalStudy = {
+  schema_version: "venturi.internal-study.v1";
+  name: string;
+  recipe: "laminar-internal/1";
+  selection: Geometry["selection"];
+  flow_rate_m3_s: number;
+  density_kg_m3: number;
+  dynamic_viscosity_pa_s: number;
+  mesh: { cell_size_m: number };
+};
+export type Study =
+  { name?: string; pipe?: Record<string, number> } | InternalStudy;
+export type RunKind =
+  "reference" | "cad_mesh" | "internal_mesh" | "internal_flow";
 export type Run = {
   id: string;
-  kind: "reference" | "cad_mesh";
+  kind: RunKind;
   status: string;
   stage: string;
   created_at: string;
@@ -61,10 +91,12 @@ export type Run = {
   recipe_hash?: string;
   retry_of?: string;
   request?: {
-    kind: "reference" | "cad_mesh";
+    kind: RunKind;
     request_id: string;
     geometry_hash?: string | null;
-    study?: { name?: string; pipe?: Record<string, number> } | null;
+    study?: Study | null;
+    mesh_run_id?: string | null;
+    approved_mesh_hash?: string | null;
     reason?: string;
     retry_of?: string | null;
   };

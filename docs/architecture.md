@@ -1,4 +1,4 @@
-# Architecture decisions — milestone 1a
+# Architecture decisions — milestones 1a and 1b
 
 ## Shared desktop, independent numerical worker
 
@@ -26,7 +26,7 @@ Do not mix OpenFOAM Foundation dictionaries with ESI/OpenCFD dictionaries. This 
 
 Original STEP bytes stay unchanged. The importer reads declared STEP length units and explicitly asks OCCT to output metres. Geometry revision identity is the SHA-256 of the original bytes. Face references derive from topology enumeration, area, centroid, and surface type, and are valid only with that exact geometry hash and the pinned importer. Reopening the same bytes restores the same references. Modified files require remapping; no general cross-revision identity claim is made.
 
-The triangle representation retains each CAD face's identity. Saved boundary roles generate named STL surfaces plus a CAD-to-surface manifest. The actual mesh boundary names, areas, and centroids are audited against that manifest. The M0 mesher intentionally targets the supplied convex pipe. Arbitrary STEP files can be inspected by the CLI; general interior-point finding and supported STEP-to-solver workflows belong to milestone 1b.
+The triangle representation retains each CAD face's identity. Saved boundary roles generate named STL surfaces plus a CAD-to-surface manifest. The actual mesh boundary names, areas, and centroids are audited against that manifest. The original M0 boundary check retains its fixture recipe. Imported prepared fluid volumes use the separate milestone-1b compiler, with CAD-classified interior points, planar named ports and a user-declared cell size.
 
 ## Scientific evidence
 
@@ -79,3 +79,43 @@ hashes, regenerates inputs for comparison, and only executes exported native
 inputs that match the deterministic compiler. It never executes arbitrary
 uploaded OpenFOAM dictionaries. Reproduction records its source manifest hash
 and relative pressure difference (limit 1e-6 for this same-runtime recipe).
+
+## Prepared STEP internal flow
+
+`venturi.internal-study.v1` and `laminar-internal/1` form a separate typed contract
+from the analytical pipe benchmark. Raw authenticated STEP uploads are bounded,
+copied before inspection and stored by source SHA-256. All imported faces start
+as walls; confirmed selections and study drafts are retained by geometry revision.
+Planar face normals, perimeter and wire count support conservative port screening.
+CAD classification locates an interior background-mesh point even for non-convex
+volumes. No compiler path depends on a fixture name or a known axis/origin.
+
+`internal_mesh` and `internal_flow` are separate persistent attempts. Mesh results
+include a native boundary-face preview and CAD correspondence audit. Solve requests
+carry the passed mesh attempt and exact hash, and must match its frozen study and
+recipe. The approved mesh bundle is copied into the flow attempt for portable
+provenance. Execution regenerates the mesh and requires the same hash before
+writing generated flow conditions and launching the solver. The current bounded
+implementation trades another meshing step for deterministic, reviewable inputs.
+
+The prepared recipe extracts sharp surface/port edges with Foundation-14
+`surfaceFeatures` and uses explicit feature snapping. It tightens snappyHexMesh's default disabled volume/tet-quality
+limits to positive values. Final `checkMesh -allTopology -allGeometry` remains
+mandatory; coarse junction cells can still fail and require a new explicit study.
+One connected region, patch inventory, areas, centroids and normals are checked
+against the CAD. The preview shows actual mesh boundary polygons and edges.
+
+Uniform normal inlet vectors integrate to the requested volume flow on the actual
+mesh. All outlets use equal zero-gauge pressure; each retains its CAD face ID.
+Function objects record mean kinematic pressure, signed flux and absolute flux for
+every boundary. Evidence checks mass, flow direction, backflow, wall leakage,
+pressure/branch stability, residuals, history completeness, field dimensions and
+cell counts. Final native patch flux sums must agree with recorded histories.
+Pressure differences are converted to Pa using the frozen density. Outlet shares
+are normalized by total signed outlet flow. No experimental accuracy is inferred.
+
+Internal-flow runtime provenance adds snappyHexMesh, surfaceFeatures and meshing-configuration
+hashes to the existing solver/library fingerprint. Replay compares these and the
+recipe, regenerates all native inputs, refuses modified dictionaries even if a
+bundle is rehashed, and compares pressure plus every branch flow. The 1a recipe,
+runtime fingerprint and native compiler remain compatible with earlier exports.

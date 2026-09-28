@@ -4,19 +4,28 @@ import hmac
 import os
 import secrets
 import shutil
+import tempfile
 import threading
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from starlette.concurrency import run_in_threadpool
 
 from . import PROTOCOL_VERSION, __version__
 from .artifacts import export_bundle, seal, verify
-from .geometry import fixture_selection, inspect_step, validate_selection
+from .geometry import fixture_selection, import_geometry, inspect_step, validate_selection
 from .jobs import ACTIVE, RunManager, cancel_attempt, file_lock, read_json, reconcile
-from .models import BoundarySelection, RunRequest, StudySpec, file_hash, write_json
-from .recipes import pipe_recipe
+from .models import (
+    BoundarySelection,
+    InternalFlowStudy,
+    RunRequest,
+    StudySpec,
+    file_hash,
+    write_json,
+)
+from .recipes import internal_recipe, pipe_recipe
 from .runtime import diagnostics
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -99,15 +108,65 @@ def create_app(storage: Path, token: str) -> FastAPI:
 
     @app.get("/v1/geometry", dependencies=[Depends(auth)])
     def get_geometry():
-        g = fixture()
+        active = storage / "active-geometry.json"
+        if active.exists():
+            revision = read_json(active)
+            key = revision["geometry_hash"]
+            if len(key) != 64 or any(c not in "0123456789abcdef" for c in key):
+                raise HTTPException(409, "Invalid saved geometry revision.")
+            folder = storage / "geometry" / key
+            if not (folder / "source.step").is_file() or file_hash(folder / "source.step") != key:
+                raise HTTPException(409, "Stored geometry changed; import and confirm it again.")
+            g = read_json(folder / "geometry.json")
+            g["imported"] = revision.get("imported", bool(g.get("imported")))
+        else:
+            g = fixture()
         selection = read_json(storage / "geometry" / g["geometry_hash"] / "selection.json")
         return {**g, "selection": selection}
 
+    @app.get("/v1/studies/internal/schema", dependencies=[Depends(auth)])
+    def internal_schema():
+        return InternalFlowStudy.model_json_schema()
+
+    @app.get("/v1/recipes/laminar-internal/1", dependencies=[Depends(auth)])
+    def get_internal_recipe():
+        return internal_recipe()
+
+    @app.post("/v1/geometry", dependencies=[Depends(auth)], status_code=201)
+    async def upload_geometry(request: Request, filename: str = "import.step"):
+        total = 0
+        with tempfile.TemporaryDirectory(prefix="venturi-import-") as temp:
+            source = Path(temp) / "source.step"
+            with source.open("wb") as stream:
+                async for chunk in request.stream():
+                    total += len(chunk)
+                    if total > 16 * 1024 * 1024:
+                        raise HTTPException(413, "STEP exceeds the 16 MiB import limit.")
+                    stream.write(chunk)
+
+            def load():
+                with geometry_lock:
+                    return import_geometry(source, storage, name=filename)
+
+            try:
+                return await run_in_threadpool(load)
+            except (ValueError, RuntimeError, OSError) as exc:
+                raise HTTPException(422, str(exc)) from exc
+
+    @app.post("/v1/geometry/fixture", dependencies=[Depends(auth)])
+    def select_fixture():
+        g = fixture()
+        write_json(
+            storage / "active-geometry.json",
+            {"geometry_hash": g["geometry_hash"], "imported": False},
+        )
+        return get_geometry()
+
     @app.post("/v1/selection", dependencies=[Depends(auth)])
     def save_selection(selection: BoundarySelection):
-        g = fixture()
+        g = get_geometry()
         try:
-            validate_selection(g, selection)
+            validate_selection(g, selection, internal=bool(g.get("imported")))
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from exc
         with geometry_lock:

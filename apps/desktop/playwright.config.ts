@@ -2,6 +2,7 @@ import { defineConfig } from "@playwright/test";
 
 const uiPort = 1421;
 const apiPort = 8766;
+const storage = `../../artifacts/e2e/session-${Date.now()}`;
 
 export default defineConfig({
   testDir: "./tests",
@@ -15,7 +16,7 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: `uv run venturi serve --storage ../../artifacts/e2e --port ${apiPort}`,
+      command: `uv run venturi serve --storage ${storage} --port ${apiPort}`,
       url: `http://127.0.0.1:${apiPort}/v1/health`,
       env: {
         VENTURI_API_TOKEN: "venturi-e2e-session-only",

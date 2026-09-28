@@ -1,0 +1,33 @@
+{
+  "schema_version": "venturi.internal-study.v1",
+  "name": "Development fixture: bend",
+  "recipe": "laminar-internal/1",
+  "physics": "steady-incompressible-newtonian-laminar",
+  "units": "SI",
+  "quantity": "inlet-to-outlet-static-pressure-and-flow-split",
+  "selection": {
+    "geometry_hash": "54bb48187d1e12b97bf25c0abd263d2be2dd08502d10e11837f8b1dc79656ba5",
+    "assignments": {
+      "face_19e5e1ca39c8b09c": "wall",
+      "face_921cd03d641ca665": "inlet",
+      "face_69b1a965814490c4": "outlet"
+    }
+  },
+  "flow_rate_m3_s": 1.5707963267948966e-07,
+  "density_kg_m3": 1000.0,
+  "dynamic_viscosity_pa_s": 0.001,
+  "inlet_profile": "uniform-normal",
+  "outlet_pressure_pa": 0,
+  "mesh": {
+    "cell_size_m": 0.0008,
+    "maximum_cells": 250000,
+    "timeout_seconds": 600
+  },
+  "max_iterations": 600,
+  "timeout_seconds": 900,
+  "resources": {
+    "wall_time_seconds": 2400,
+    "memory_mb": 4096,
+    "disk_mb": 2048
+  }
+}

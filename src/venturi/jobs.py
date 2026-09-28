@@ -11,9 +11,9 @@ from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 
-from .artifacts import seal
+from .artifacts import seal, verify
 from .evidence import check, write_report
-from .models import RunRequest, StudySpec, canonical_hash, write_json
+from .models import InternalFlowStudy, RunRequest, StudySpec, canonical_hash, file_hash, write_json
 from .recipes import freeze_study
 from .runtime import event, process_alive, process_identity, terminate_group
 
@@ -27,7 +27,7 @@ def now() -> str:
 
 
 def read_json(path: Path) -> dict:
-    return json.loads(path.read_text())
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 @contextmanager
@@ -54,7 +54,7 @@ def initialize_attempt(folder: Path, request: RunRequest, cad: dict | None = Non
     request = RunRequest.model_validate(request.model_dump())
     folder.mkdir(parents=True, exist_ok=False)
     write_json(folder / "request.json", request.model_dump())
-    frozen = freeze_study(request.study or StudySpec()) if request.kind == "reference" else None
+    frozen = freeze_study(request.study or StudySpec()) if request.kind != "cad_mesh" else None
     if frozen:
         write_json(folder / "study.json", frozen["study"])
         write_json(folder / "recipe.json", frozen["recipe"])
@@ -62,6 +62,12 @@ def initialize_attempt(folder: Path, request: RunRequest, cad: dict | None = Non
         shutil.copyfile(cad["source"], folder / "source.step")
         write_json(folder / "geometry.json", cad["geometry"])
         write_json(folder / "selection.json", cad["selection"])
+        if cad.get("approved_mesh"):
+            shutil.copytree(
+                cad["approved_mesh"],
+                folder / "approved-mesh",
+                ignore=shutil.ignore_patterns(".run.lock", ".cancel"),
+            )
     state = {
         "schema_version": "venturi.attempt.v1",
         "id": folder.name,
@@ -249,6 +255,7 @@ class RunManager:
         )
 
     def submit(self, request: RunRequest, cad: dict | None = None) -> dict:
+        request = RunRequest.model_validate(request.model_dump())
         with file_lock(self.storage / ".admission.lock"):
             states = self.list()
             for state in states:
@@ -265,17 +272,55 @@ class RunManager:
                 original = RunRequest.model_validate(parent["request"])
                 if parent["status"] not in TERMINAL or original.kind != request.kind:
                     raise ValueError("Retry requires a terminal attempt of the same kind.")
-                if (original.study or StudySpec()) != (
-                    request.study or StudySpec()
-                ) or original.geometry_hash != request.geometry_hash:
+                if (
+                    (original.study or StudySpec()) != (request.study or StudySpec())
+                    or original.geometry_hash != request.geometry_hash
+                    or original.mesh_run_id != request.mesh_run_id
+                    or original.approved_mesh_hash != request.approved_mesh_hash
+                ):
                     raise ValueError("Retry must preserve the original study and geometry.")
-                if request.kind == "cad_mesh":
+                if request.kind != "reference":
                     source = self.folder(request.retry_of)
                     cad = {
                         "source": source / "source.step",
                         "geometry": read_json(source / "geometry.json"),
                         "selection": read_json(source / "selection.json"),
                     }
+                    if request.kind == "internal_flow":
+                        cad["approved_mesh"] = source / "approved-mesh"
+            if request.kind.startswith("internal_"):
+                if not isinstance(request.study, InternalFlowStudy):
+                    raise ValueError("Internal-flow study is required.")
+                if not cad:
+                    source = self.storage / "geometry" / request.study.selection.geometry_hash
+                    if not (source / "source.step").is_file():
+                        raise ValueError(
+                            "Import the study's STEP geometry before building its mesh."
+                        )
+                    cad = {
+                        "source": source / "source.step",
+                        "geometry": read_json(source / "geometry.json"),
+                        "selection": request.study.selection.model_dump(),
+                    }
+                if file_hash(cad["source"]) != request.study.selection.geometry_hash:
+                    raise ValueError("Source STEP differs from the study's geometry hash.")
+                if request.kind == "internal_flow":
+                    mesh = cad.get("approved_mesh") or self.folder(request.mesh_run_id)
+                    mesh_state = reconcile(mesh)
+                    if mesh_state["status"] != "passed" or mesh_state["kind"] != "internal_mesh":
+                        raise ValueError("Only a passed internal mesh can be approved for solving.")
+                    with file_lock(mesh / ".run.lock"):
+                        verify(mesh)
+                    result = read_json(mesh / "result.json")
+                    if (
+                        result.get("study_hash") != freeze_study(request.study)["study_hash"]
+                        or result.get("recipe_hash") != freeze_study(request.study)["recipe_hash"]
+                        or result.get("mesh_hash") != request.approved_mesh_hash
+                    ):
+                        raise ValueError(
+                            "Mesh approval is stale or belongs to different study inputs."
+                        )
+                    cad["approved_mesh"] = mesh
             folder = self.runs / uuid.uuid4().hex
             initialize_attempt(folder, request, cad)
             try:
