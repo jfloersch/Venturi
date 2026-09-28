@@ -337,7 +337,7 @@ export function App() {
           reason: "Manual retry from the workbench",
         }),
       });
-      setRuns((old) => [value, ...old]);
+      setRuns((old) => [value, ...old.filter((r) => r.id !== value.id)]);
       setRunId(value.id);
     });
   }
@@ -385,7 +385,7 @@ export function App() {
           study,
         }),
       });
-      setRuns((old) => [value, ...old]);
+      setRuns((old) => [value, ...old.filter((r) => r.id !== value.id)]);
       setRunId(value.id);
       setTab("evidence");
     });
@@ -405,7 +405,7 @@ export function App() {
             "User reviewed and approved this mesh and saved study in the workbench",
         }),
       });
-      setRuns((old) => [value, ...old]);
+      setRuns((old) => [value, ...old.filter((r) => r.id !== value.id)]);
       setRunId(value.id);
     });
   }

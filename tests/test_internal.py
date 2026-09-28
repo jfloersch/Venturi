@@ -1,6 +1,7 @@
 """Guardrails for prepared STEP studies and evidence; no solver stubs claim accuracy."""
 
 import copy
+import math
 from pathlib import Path
 
 import pytest
@@ -8,7 +9,13 @@ from fastapi.testclient import TestClient
 
 from venturi.artifacts import seal
 from venturi.evidence import field_values
-from venturi.geometry import import_geometry, inspect_step, validate_selection
+from venturi.geometry import (
+    import_geometry,
+    inspect_step,
+    interior_point,
+    read_step_shape,
+    validate_selection,
+)
 from venturi.internal import flow_evidence, study_geometry
 from venturi.jobs import RunManager, initialize_attempt, read_json
 from venturi.models import BoundarySelection, InternalFlowStudy, RunRequest, write_json
@@ -48,6 +55,33 @@ def test_prepared_cases_and_deterministic_port_mapping(case):
     g = study_geometry(FIXTURES / f"{case}.step", study(case))
     assert all(0 < r <= 200 for r in g["port_reynolds_full_flow"].values())
     assert len(g["port_reynolds_full_flow"]) == (3 if case == "manifold" else 2)
+
+
+@pytest.mark.parametrize("cell_size", [0.0008, 0.000625, 0.0005, 0.0004])
+def test_mesh_point_cell_is_inside_curved_fluid(cell_size):
+    from OCP.BRepClass3d import BRepClass3d_SolidClassifier
+    from OCP.gp import gp_Pnt
+    from OCP.TopAbs import TopAbs_IN
+
+    source = FIXTURES / "bend.step"
+    geometry = inspect_step(source)
+    bounds = geometry["bounds_m"]
+    low = [bounds[i] - 2 * cell_size for i in range(3)]
+    point = interior_point(source, geometry, cell_size, low)
+    # blockMesh fits an integer number of cells across the padded domain.
+    # The point and its actual background-cell center must select fluid.
+    center = []
+    for i in range(3):
+        extent = bounds[i + 3] + 2 * cell_size - low[i]
+        width = extent / math.ceil(extent / cell_size)
+        position = (point[i] - low[i]) / width
+        assert abs(position - round(position)) > 1e-4
+        center.append(low[i] + (math.floor(position) + 0.5) * width)
+    shape, _ = read_step_shape(source)
+    classifier = BRepClass3d_SolidClassifier(shape)
+    for candidate in (point, center):
+        classifier.Perform(gp_Pnt(*candidate), min(cell_size * 1e-5, 1e-8))
+        assert classifier.State() == TopAbs_IN
 
 
 @pytest.mark.parametrize(

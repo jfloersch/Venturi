@@ -320,7 +320,7 @@ def import_geometry(source: Path, storage: Path, *, name: str | None = None) -> 
 
 
 def interior_point(source: Path, geometry: dict, h: float, low: list[float]) -> list[float]:
-    """A deterministic CAD-classified point, safely away from background cell planes."""
+    """Select a fluid point whose background-cell center is also inside the CAD."""
     from itertools import product
 
     from OCP.BRepClass3d import BRepClass3d_SolidClassifier
@@ -331,6 +331,10 @@ def interior_point(source: Path, geometry: dict, h: float, low: list[float]) -> 
     classifier = BRepClass3d_SolidClassifier(shape)
     bounds = geometry["bounds_m"]
     widths = [bounds[i + 3] - bounds[i] for i in range(3)]
+    # blockMesh fits ceil(extent/h) cells across each padded dimension, so its
+    # actual spacing can be smaller than h. Use that spacing for cell ownership.
+    extents = [bounds[i + 3] + 2 * h - low[i] for i in range(3)]
+    spacing = [extent / math.ceil(extent / h) for extent in extents]
     candidates = [[(bounds[i] + bounds[i + 3]) / 2 for i in range(3)]]
     for face in geometry["faces"]:
         if face.get("normal") is not None:
@@ -346,7 +350,17 @@ def interior_point(source: Path, geometry: dict, h: float, low: list[float]) -> 
         )
     for p in candidates:
         p = [low[i] + (math.floor((p[i] - low[i]) / h) + 0.371) * h for i in range(3)]
+        position = [(p[i] - low[i]) / spacing[i] for i in range(3)]
+        if any(abs(value - round(value)) <= 1e-4 for value in position):
+            continue
         classifier.Perform(gp_Pnt(*p), min(h * 1e-5, 1e-8))
+        if classifier.State() != TopAbs_IN:
+            continue
+        # A point just inside a curved wall can occupy a cell whose center is
+        # outside. snappy retains a connected cell region; that seed can keep
+        # the exterior instead of the fluid even though the CAD point is IN.
+        center = [low[i] + (math.floor(position[i]) + 0.5) * spacing[i] for i in range(3)]
+        classifier.Perform(gp_Pnt(*center), min(h * 1e-5, 1e-8))
         if classifier.State() == TopAbs_IN:
             return p
     raise ValueError(

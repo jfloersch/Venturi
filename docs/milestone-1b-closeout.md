@@ -9,6 +9,10 @@ and audit the mesh, require approval of its frozen study and exact mesh, solve,
 report pressure loss and outlet flow split, and export/reproduce the native case.
 The original 1a analytical pipe workflow is retained.
 
+Subsequent [milestone 1 closeout testing](milestone-1-closeout.md) adds a clean
+1b installation, imported-geometry mesh sensitivity and regression fixes. This
+document retains the original 1b measurements and their provenance.
+
 ## Measured numerical corpus
 
 Every case below passed mesh and flow checks using generated dictionaries only.

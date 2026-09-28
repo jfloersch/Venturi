@@ -140,3 +140,30 @@ These synthetic development/held-out cases establish bounded workflow behavior,
 not general accuracy for every CAD passage. Port screening does not detect all
 internal restrictions. Independent CFD review, grid-convergence studies and
 experimental validation remain outside this implementation acceptance.
+
+## Milestone 1 closeout regression
+
+Run the prepared-STEP mesh-sensitivity and fluid-scaling matrix in a new folder:
+
+```bash
+uv run --locked python scripts/check_internal_matrix.py --output artifacts/internal-matrix-new
+```
+
+The script writes all five studies and acceptance criteria before launching any
+solver. It compares the bend at 0.8/0.5 mm and the manifold at 0.625/0.4 mm, with
+limits of 5% pressure-drop difference and one percentage point of outlet-share
+difference. A third bend study doubles density and dynamic viscosity together:
+unchanged kinematic viscosity should preserve flow and double pressure in Pa
+within 1e-6 relative error. Every mesh and flow must independently pass the
+normal recipe checks and artifact verification. Failed attempts remain on disk.
+These are two-level sensitivity checks, not a formal grid-convergence study.
+
+The curved-geometry unit regression checks both the selected CAD point and its
+actual background-cell center at four resolutions. The browser suite deliberately
+holds submission responses until polling has already displayed the new attempt,
+covering retry, mesh creation and mesh approval. Each attempt must appear once;
+duplicate React keys fail the suite.
+
+See [milestone 1 closeout](milestone-1-closeout.md) for the measured final results,
+clean-install/replay evidence, fixes found during testing, and remaining release
+qualification work.

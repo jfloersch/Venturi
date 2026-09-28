@@ -1,0 +1,1772 @@
+{
+  "measured_at_utc": "2026-09-28T03:08:43.443957+00:00",
+  "baseline_commit": "340e379ecc64ca1576afc35363f07d65d145b32f",
+  "version": "0.2.0",
+  "development_closeout_passed": true,
+  "worker_sources": {
+    "__init__.py": "5ecf5043b4166d7d6b039085de25d0c9b40281d1f8c59ae167af3f56bd725db0",
+    "artifacts.py": "d33ab3723a349c35e6e5fd7b5f6c29031ece40debca24221f01a80e5129b4dd3",
+    "cli.py": "f29ef5a03902ddef9da4dad3ac63e31094dc738d5de9de07e32fe0d6cdcfdb7c",
+    "evidence.py": "8bed1f760e4f47c0895a60cedc96b7fd3ea2012d88d9e1eb510237bd1e17ad70",
+    "foam.py": "8ca84dccab391484784596caaf9a644186c03a56fd024673bad3f68bcb577ca3",
+    "geometry.py": "1a47d63b733a544d0e155347e4427933bbd9e0ca17ce2f6c9772f57b154e8dbf",
+    "internal.py": "d63ec1420f7d91d4fc3b40ce536ea6ca6020048d9312387d6ef4569b200aa101",
+    "jobs.py": "0d052252406e04e5df6fa68231e6c461ca267539670eea5b03ee3915adc30c7f",
+    "models.py": "36b1e102a9fad1df54d9570a6d371ba62c77df02ea9aec955f92545a01bacd9b",
+    "process.py": "d25aabb80cbaeab8d23324bd3704260d7481a62153713e7ac27011e2f421b136",
+    "recipes.py": "8265dcb99b41ba0d910970a9a1d4b2892d0488937f170ed979ebe5a43cd45208",
+    "runner.py": "ebfc7091e2440babbfc1d7c672feca4dcb3f9c40f38ffb66ae568eef6ba71fad",
+    "runtime.py": "29b4aa1b4306db1da096a8741e4016efe3661abe4cda311f67ab0d3a1957affa",
+    "server.py": "d4b39b16d6503f36951e893e5f38fd8774aa4dfd5eeb0a2ef542c089fb6c397d",
+    "workflows.py": "e8b2c3f85b410ae55e83dab58b62f2117438f42e7394259330f930406bb41f91"
+  },
+  "source_sha256": {
+    "src/venturi/geometry.py": "1a47d63b733a544d0e155347e4427933bbd9e0ca17ce2f6c9772f57b154e8dbf",
+    "apps/desktop/src/App.tsx": "8c87ac39ea90d3426b494b29c3d910be7d650010ee2b47c89b09e4057ef0add5",
+    "tests/test_internal.py": "0766b856732161df63073eab4062523db6362b999707663bfc9dfce00d60ce9b",
+    "apps/desktop/tests/workbench.spec.ts": "99eedcaa517aecaca318e7b8e7b34753433a82ac07b6b06d66f005cdfa9b9a4b",
+    "scripts/check_internal_matrix.py": "eda0d1beb43bdf0e7e0a2fa162ab718850b9af5f22ad8750337c8b1c6075999f"
+  },
+  "clean_environment": {
+    "root": "/tmp/venturi-m1-closeout-1_mt0awv",
+    "rootfs": "/tmp/venturi-m1-closeout-1_mt0awv/rootfs",
+    "checkout": "/tmp/venturi-m1-closeout-1_mt0awv/checkout",
+    "source_commit": "340e379ecc64ca1576afc35363f07d65d145b32f",
+    "base_url": "https://cdimage.ubuntu.com/ubuntu-base/releases/22.04/release/ubuntu-base-22.04.5-base-amd64.tar.gz",
+    "base_sha256": "242cd8898b33ea806ef5f13b1076ed7c76f9f989d18384452f7166692438ff1a",
+    "original_archive": "/home/jfloersch/dev/venturi/artifacts/milestone-1b/acceptance/test_portable_replay_and_tampe2/manifold.zip",
+    "original_archive_sha256": "a5d4e56569149b1499782d6688bbd87034737153e8c4d59af13559ba980b035a",
+    "isolation": "fresh Ubuntu Base userspace and checkout; empty Python, OpenFOAM and dependency caches; shared WSL kernel and host uv binary; previously downloaded checksum-verified base archive",
+    "tested_overlay_sha256": {
+      "src/venturi/geometry.py": "1a47d63b733a544d0e155347e4427933bbd9e0ca17ce2f6c9772f57b154e8dbf",
+      "tests/test_internal.py": "0766b856732161df63073eab4062523db6362b999707663bfc9dfce00d60ce9b",
+      "scripts/check_internal_matrix.py": "eda0d1beb43bdf0e7e0a2fa162ab718850b9af5f22ad8750337c8b1c6075999f"
+    }
+  },
+  "verification": {
+    "python": "130 passed, 3 warnings in 1019.31s (0:16:59)",
+    "browser": "4 passed; includes forced poll-before-submit responses for retry, mesh and flow",
+    "native_release_build": "passed; prior native Linux/WSLg interactive smoke retained, not rerun in this closeout",
+    "lint_and_format": "Ruff, Prettier, cargo fmt and git diff --check passed"
+  },
+  "matrix_plan": {
+    "criteria": {
+      "all_mesh_and_flow_checks_pass": true,
+      "grid_pressure_relative_difference": 0.05,
+      "grid_outlet_fraction_absolute_difference": 0.01,
+      "same_kinematic_viscosity_pressure_scaling_relative_error": 1e-06,
+      "same_kinematic_viscosity_outlet_flow_relative_difference": 1e-06
+    },
+    "studies": {
+      "bend_baseline": {
+        "schema_version": "venturi.internal-study.v1",
+        "name": "Milestone 1 closeout: bend_baseline",
+        "recipe": "laminar-internal/1",
+        "physics": "steady-incompressible-newtonian-laminar",
+        "units": "SI",
+        "quantity": "inlet-to-outlet-static-pressure-and-flow-split",
+        "selection": {
+          "geometry_hash": "54bb48187d1e12b97bf25c0abd263d2be2dd08502d10e11837f8b1dc79656ba5",
+          "assignments": {
+            "face_19e5e1ca39c8b09c": "wall",
+            "face_921cd03d641ca665": "inlet",
+            "face_69b1a965814490c4": "outlet"
+          }
+        },
+        "flow_rate_m3_s": 1.5707963267948966e-07,
+        "density_kg_m3": 1000.0,
+        "dynamic_viscosity_pa_s": 0.001,
+        "inlet_profile": "uniform-normal",
+        "outlet_pressure_pa": 0,
+        "mesh": {
+          "cell_size_m": 0.0008,
+          "maximum_cells": 250000,
+          "timeout_seconds": 600
+        },
+        "max_iterations": 600,
+        "timeout_seconds": 900,
+        "resources": {
+          "wall_time_seconds": 2400,
+          "memory_mb": 4096,
+          "disk_mb": 2048
+        }
+      },
+      "bend_fine": {
+        "schema_version": "venturi.internal-study.v1",
+        "name": "Milestone 1 closeout: bend_fine",
+        "recipe": "laminar-internal/1",
+        "physics": "steady-incompressible-newtonian-laminar",
+        "units": "SI",
+        "quantity": "inlet-to-outlet-static-pressure-and-flow-split",
+        "selection": {
+          "geometry_hash": "54bb48187d1e12b97bf25c0abd263d2be2dd08502d10e11837f8b1dc79656ba5",
+          "assignments": {
+            "face_19e5e1ca39c8b09c": "wall",
+            "face_921cd03d641ca665": "inlet",
+            "face_69b1a965814490c4": "outlet"
+          }
+        },
+        "flow_rate_m3_s": 1.5707963267948966e-07,
+        "density_kg_m3": 1000.0,
+        "dynamic_viscosity_pa_s": 0.001,
+        "inlet_profile": "uniform-normal",
+        "outlet_pressure_pa": 0,
+        "mesh": {
+          "cell_size_m": 0.0005,
+          "maximum_cells": 250000,
+          "timeout_seconds": 600
+        },
+        "max_iterations": 600,
+        "timeout_seconds": 900,
+        "resources": {
+          "wall_time_seconds": 2400,
+          "memory_mb": 4096,
+          "disk_mb": 2048
+        }
+      },
+      "bend_double_density_and_viscosity": {
+        "schema_version": "venturi.internal-study.v1",
+        "name": "Milestone 1 closeout: bend_double_density_and_viscosity",
+        "recipe": "laminar-internal/1",
+        "physics": "steady-incompressible-newtonian-laminar",
+        "units": "SI",
+        "quantity": "inlet-to-outlet-static-pressure-and-flow-split",
+        "selection": {
+          "geometry_hash": "54bb48187d1e12b97bf25c0abd263d2be2dd08502d10e11837f8b1dc79656ba5",
+          "assignments": {
+            "face_19e5e1ca39c8b09c": "wall",
+            "face_921cd03d641ca665": "inlet",
+            "face_69b1a965814490c4": "outlet"
+          }
+        },
+        "flow_rate_m3_s": 1.5707963267948966e-07,
+        "density_kg_m3": 2000.0,
+        "dynamic_viscosity_pa_s": 0.002,
+        "inlet_profile": "uniform-normal",
+        "outlet_pressure_pa": 0,
+        "mesh": {
+          "cell_size_m": 0.0008,
+          "maximum_cells": 250000,
+          "timeout_seconds": 600
+        },
+        "max_iterations": 600,
+        "timeout_seconds": 900,
+        "resources": {
+          "wall_time_seconds": 2400,
+          "memory_mb": 4096,
+          "disk_mb": 2048
+        }
+      },
+      "manifold_baseline": {
+        "schema_version": "venturi.internal-study.v1",
+        "name": "Milestone 1 closeout: manifold_baseline",
+        "recipe": "laminar-internal/1",
+        "physics": "steady-incompressible-newtonian-laminar",
+        "units": "SI",
+        "quantity": "inlet-to-outlet-static-pressure-and-flow-split",
+        "selection": {
+          "geometry_hash": "087c012aca0b254d8cc15bc2c732d62fb0badd15f80d0d5335e43305167d7534",
+          "assignments": {
+            "face_0ee931c905af7ad3": "wall",
+            "face_9a2d50514244382f": "wall",
+            "face_31c73b3d54eceef0": "inlet",
+            "face_cec5d59a563ac5cd": "outlet",
+            "face_8e8cabc457e7438c": "outlet"
+          }
+        },
+        "flow_rate_m3_s": 1.5707963267948966e-07,
+        "density_kg_m3": 1000.0,
+        "dynamic_viscosity_pa_s": 0.001,
+        "inlet_profile": "uniform-normal",
+        "outlet_pressure_pa": 0,
+        "mesh": {
+          "cell_size_m": 0.000625,
+          "maximum_cells": 250000,
+          "timeout_seconds": 600
+        },
+        "max_iterations": 600,
+        "timeout_seconds": 900,
+        "resources": {
+          "wall_time_seconds": 2400,
+          "memory_mb": 4096,
+          "disk_mb": 2048
+        }
+      },
+      "manifold_fine": {
+        "schema_version": "venturi.internal-study.v1",
+        "name": "Milestone 1 closeout: manifold_fine",
+        "recipe": "laminar-internal/1",
+        "physics": "steady-incompressible-newtonian-laminar",
+        "units": "SI",
+        "quantity": "inlet-to-outlet-static-pressure-and-flow-split",
+        "selection": {
+          "geometry_hash": "087c012aca0b254d8cc15bc2c732d62fb0badd15f80d0d5335e43305167d7534",
+          "assignments": {
+            "face_0ee931c905af7ad3": "wall",
+            "face_9a2d50514244382f": "wall",
+            "face_31c73b3d54eceef0": "inlet",
+            "face_cec5d59a563ac5cd": "outlet",
+            "face_8e8cabc457e7438c": "outlet"
+          }
+        },
+        "flow_rate_m3_s": 1.5707963267948966e-07,
+        "density_kg_m3": 1000.0,
+        "dynamic_viscosity_pa_s": 0.001,
+        "inlet_profile": "uniform-normal",
+        "outlet_pressure_pa": 0,
+        "mesh": {
+          "cell_size_m": 0.0004,
+          "maximum_cells": 250000,
+          "timeout_seconds": 600
+        },
+        "max_iterations": 600,
+        "timeout_seconds": 900,
+        "resources": {
+          "wall_time_seconds": 2400,
+          "memory_mb": 4096,
+          "disk_mb": 2048
+        }
+      }
+    },
+    "script_sha256": "eda0d1beb43bdf0e7e0a2fa162ab718850b9af5f22ad8750337c8b1c6075999f",
+    "scope": "Two-level mesh sensitivity and invariant-nu scaling regression; not formal grid convergence, experimental validation or independent CFD review."
+  },
+  "matrix": {
+    "complete": true,
+    "passed": true,
+    "comparisons": [
+      {
+        "name": "bend mesh sensitivity",
+        "pressure_relative_difference": 0.016780145426248616,
+        "max_outlet_fraction_absolute_difference": 0.0,
+        "passed": true
+      },
+      {
+        "name": "manifold mesh sensitivity",
+        "pressure_relative_difference": 0.01610193232143975,
+        "max_outlet_fraction_absolute_difference": 1.6391850146124654e-06,
+        "passed": true
+      },
+      {
+        "name": "same kinematic viscosity fluid scaling",
+        "pressure_scaling_relative_error": 0.0,
+        "max_outlet_flow_relative_difference": 0.0,
+        "passed": true
+      }
+    ],
+    "cases": [
+      {
+        "case": "bend_baseline",
+        "status": "passed",
+        "study": "artifacts/milestone-1-closeout/internal-matrix-fixed/studies/bend_baseline.json",
+        "mesh_run": "artifacts/milestone-1-closeout/internal-matrix-fixed/stores/bend_baseline/runs/2e484d990a5848469d446cb6501edaa4",
+        "flow_run": "artifacts/milestone-1-closeout/internal-matrix-fixed/stores/bend_baseline/runs/4b23ff8ad8804e6cb6903e7c41870a85",
+        "integrity": true,
+        "manifest_sha256": "a1576c4d2fa167263402dd605a9175f0255a1ca9ce9b7894377c3777efdefe57",
+        "cells": 7599,
+        "pressure_drop_pa": 0.03515233368224,
+        "outlets": {
+          "outlet_1": {
+            "face_ids": [
+              "face_69b1a965814490c4"
+            ],
+            "volume_flow_m3_s": 1.570796326793e-07,
+            "flow_fraction": 1.0,
+            "pressure_drop_pa": 0.03515233368224,
+            "backflow_fraction": 0.0
+          }
+        },
+        "checks": [
+          {
+            "name": "Mesh quality",
+            "status": "pass",
+            "detail": "OpenFOAM checkMesh -allTopology -allGeometry: Mesh OK."
+          },
+          {
+            "name": "Connected fluid mesh",
+            "status": "pass",
+            "detail": "1 connected cell regions; exactly one required."
+          },
+          {
+            "name": "Cell budget",
+            "status": "pass",
+            "detail": "7599 cells; limit 250000."
+          },
+          {
+            "name": "Enclosed volume",
+            "status": "pass",
+            "detail": "CAD/mesh volume difference 0.656%; limit 5%."
+          },
+          {
+            "name": "Boundary completeness",
+            "status": "pass",
+            "detail": "Every selected port and wall must survive meshing; no exposed background patches."
+          },
+          {
+            "name": "inlet mapping",
+            "status": "pass",
+            "detail": "Area error 0.717%; centroid displacement 2.89e-06 m; outward-normal dot 0.9999999999999997."
+          },
+          {
+            "name": "wall mapping",
+            "status": "pass",
+            "detail": "Area error 0.234%; centroid displacement 4.83e-06 m; outward-normal dot not applicable."
+          },
+          {
+            "name": "outlet_1 mapping",
+            "status": "pass",
+            "detail": "Area error 0.717%; centroid displacement 2.89e-06 m; outward-normal dot 1.0000000000000007."
+          },
+          {
+            "name": "Solver completed",
+            "status": "pass",
+            "detail": "Recorded iteration 600 of 600."
+          },
+          {
+            "name": "Prescribed inlet flow",
+            "status": "pass",
+            "detail": "Measured 1.5707963e-07 m³/s; prescribed 1.5707963e-07 m³/s."
+          },
+          {
+            "name": "Mass conservation",
+            "status": "pass",
+            "detail": "Net flow imbalance 0.0000%; limit 0.1%."
+          },
+          {
+            "name": "Pressure-drop stability",
+            "status": "pass",
+            "detail": "Positive inlet-to-outlet drop; final-window variation 0.0000%; limit 0.1%."
+          },
+          {
+            "name": "Outlet flow stability",
+            "status": "pass",
+            "detail": "Largest final-window branch variation 0.0000%; limit 0.1%."
+          },
+          {
+            "name": "Equation residuals",
+            "status": "pass",
+            "detail": "Final initial residuals {'Ux': 1.84452378495e-16, 'Uy': 1.87383945997e-16, 'Uz': 3.37043244734e-16, 'p': 8.69082463844e-11}; limit 1e-5."
+          },
+          {
+            "name": "Outlet direction and backflow",
+            "status": "pass",
+            "detail": "Reverse outlet flows / prescribed inlet: {'outlet_1': 0.0}; limit 0.1%."
+          },
+          {
+            "name": "Impermeable walls",
+            "status": "pass",
+            "detail": "Absolute wall flux / inlet flow 0; limit 1e-7."
+          },
+          {
+            "name": "Field export",
+            "status": "pass",
+            "detail": "Native case and VTK fields retained."
+          },
+          {
+            "name": "Frozen native inputs",
+            "status": "pass",
+            "detail": "Approved mesh, dictionaries and initial fields remained unchanged."
+          },
+          {
+            "name": "Frozen geometry and study",
+            "status": "pass",
+            "detail": "Source STEP, study and recipe match the executed inputs."
+          }
+        ],
+        "mesh_hash": "e5b6837316dda7ed8d9e4c2db540afa3aa7ac2ac4dd92648f196ad3a75d423aa",
+        "study_hash": "546fa0e285b20c60c19e758a07ae6dba7d7d789f9968b94ff601c574b8ea19bd"
+      },
+      {
+        "case": "bend_fine",
+        "status": "passed",
+        "study": "artifacts/milestone-1-closeout/internal-matrix-fixed/studies/bend_fine.json",
+        "mesh_run": "artifacts/milestone-1-closeout/internal-matrix-fixed/stores/bend_fine/runs/004f5eb802ae4b5c90fe3f7776ab63f1",
+        "flow_run": "artifacts/milestone-1-closeout/internal-matrix-fixed/stores/bend_fine/runs/da1fcddfbaf941539d0c1073c27871bd",
+        "integrity": true,
+        "manifest_sha256": "e5caf4984eb02e3e04304579eaa86775f993b4f84f13fe650f161d6334b33e76",
+        "cells": 31828,
+        "pressure_drop_pa": 0.035742194953500006,
+        "outlets": {
+          "outlet_1": {
+            "face_ids": [
+              "face_69b1a965814490c4"
+            ],
+            "volume_flow_m3_s": 1.570796326671e-07,
+            "flow_fraction": 1.0,
+            "pressure_drop_pa": 0.035742194953500006,
+            "backflow_fraction": 0.0
+          }
+        },
+        "checks": [
+          {
+            "name": "Mesh quality",
+            "status": "pass",
+            "detail": "OpenFOAM checkMesh -allTopology -allGeometry: Mesh OK."
+          },
+          {
+            "name": "Connected fluid mesh",
+            "status": "pass",
+            "detail": "1 connected cell regions; exactly one required."
+          },
+          {
+            "name": "Cell budget",
+            "status": "pass",
+            "detail": "31828 cells; limit 250000."
+          },
+          {
+            "name": "Enclosed volume",
+            "status": "pass",
+            "detail": "CAD/mesh volume difference 0.312%; limit 5%."
+          },
+          {
+            "name": "Boundary completeness",
+            "status": "pass",
+            "detail": "Every selected port and wall must survive meshing; no exposed background patches."
+          },
+          {
+            "name": "inlet mapping",
+            "status": "pass",
+            "detail": "Area error 0.315%; centroid displacement 8.3e-07 m; outward-normal dot 0.9999999999999991."
+          },
+          {
+            "name": "wall mapping",
+            "status": "pass",
+            "detail": "Area error 0.123%; centroid displacement 3.2e-06 m; outward-normal dot not applicable."
+          },
+          {
+            "name": "outlet_1 mapping",
+            "status": "pass",
+            "detail": "Area error 0.315%; centroid displacement 8.3e-07 m; outward-normal dot 0.9999999999999991."
+          },
+          {
+            "name": "Solver completed",
+            "status": "pass",
+            "detail": "Recorded iteration 600 of 600."
+          },
+          {
+            "name": "Prescribed inlet flow",
+            "status": "pass",
+            "detail": "Measured 1.5707963e-07 m³/s; prescribed 1.5707963e-07 m³/s."
+          },
+          {
+            "name": "Mass conservation",
+            "status": "pass",
+            "detail": "Net flow imbalance 0.0000%; limit 0.1%."
+          },
+          {
+            "name": "Pressure-drop stability",
+            "status": "pass",
+            "detail": "Positive inlet-to-outlet drop; final-window variation 0.0000%; limit 0.1%."
+          },
+          {
+            "name": "Outlet flow stability",
+            "status": "pass",
+            "detail": "Largest final-window branch variation 0.0000%; limit 0.1%."
+          },
+          {
+            "name": "Equation residuals",
+            "status": "pass",
+            "detail": "Final initial residuals {'Ux': 3.24932326441e-13, 'Uy': 2.27796473686e-13, 'Uz': 5.32660459043e-13, 'p': 9.94641391629e-11}; limit 1e-5."
+          },
+          {
+            "name": "Outlet direction and backflow",
+            "status": "pass",
+            "detail": "Reverse outlet flows / prescribed inlet: {'outlet_1': 0.0}; limit 0.1%."
+          },
+          {
+            "name": "Impermeable walls",
+            "status": "pass",
+            "detail": "Absolute wall flux / inlet flow 0; limit 1e-7."
+          },
+          {
+            "name": "Field export",
+            "status": "pass",
+            "detail": "Native case and VTK fields retained."
+          },
+          {
+            "name": "Frozen native inputs",
+            "status": "pass",
+            "detail": "Approved mesh, dictionaries and initial fields remained unchanged."
+          },
+          {
+            "name": "Frozen geometry and study",
+            "status": "pass",
+            "detail": "Source STEP, study and recipe match the executed inputs."
+          }
+        ],
+        "mesh_hash": "9f448fa0acc669fb8acdbb8e3ba8fdc2c32a9057bb6d616b6b33e48cc0b2b128",
+        "study_hash": "21effa66e11c4007be0b99f40a09b11d467e25a5394bcf0b8a157a34442adc2e"
+      },
+      {
+        "case": "bend_double_density_and_viscosity",
+        "status": "passed",
+        "study": "artifacts/milestone-1-closeout/internal-matrix-fixed/studies/bend_double_density_and_viscosity.json",
+        "mesh_run": "artifacts/milestone-1-closeout/internal-matrix-fixed/stores/bend_double_density_and_viscosity/runs/d4b486b3f6f74132960ff7822c44e645",
+        "flow_run": "artifacts/milestone-1-closeout/internal-matrix-fixed/stores/bend_double_density_and_viscosity/runs/ab4289c0a84c425fa6e7a8395e299835",
+        "integrity": true,
+        "manifest_sha256": "4888c4ec2c6029bdd8a1b9a8cc67f4af96f023ef48d332931eeed6a280275d46",
+        "cells": 7599,
+        "pressure_drop_pa": 0.07030466736448,
+        "outlets": {
+          "outlet_1": {
+            "face_ids": [
+              "face_69b1a965814490c4"
+            ],
+            "volume_flow_m3_s": 1.570796326793e-07,
+            "flow_fraction": 1.0,
+            "pressure_drop_pa": 0.07030466736448,
+            "backflow_fraction": 0.0
+          }
+        },
+        "checks": [
+          {
+            "name": "Mesh quality",
+            "status": "pass",
+            "detail": "OpenFOAM checkMesh -allTopology -allGeometry: Mesh OK."
+          },
+          {
+            "name": "Connected fluid mesh",
+            "status": "pass",
+            "detail": "1 connected cell regions; exactly one required."
+          },
+          {
+            "name": "Cell budget",
+            "status": "pass",
+            "detail": "7599 cells; limit 250000."
+          },
+          {
+            "name": "Enclosed volume",
+            "status": "pass",
+            "detail": "CAD/mesh volume difference 0.656%; limit 5%."
+          },
+          {
+            "name": "Boundary completeness",
+            "status": "pass",
+            "detail": "Every selected port and wall must survive meshing; no exposed background patches."
+          },
+          {
+            "name": "inlet mapping",
+            "status": "pass",
+            "detail": "Area error 0.717%; centroid displacement 2.89e-06 m; outward-normal dot 0.9999999999999997."
+          },
+          {
+            "name": "wall mapping",
+            "status": "pass",
+            "detail": "Area error 0.234%; centroid displacement 4.83e-06 m; outward-normal dot not applicable."
+          },
+          {
+            "name": "outlet_1 mapping",
+            "status": "pass",
+            "detail": "Area error 0.717%; centroid displacement 2.89e-06 m; outward-normal dot 1.0000000000000007."
+          },
+          {
+            "name": "Solver completed",
+            "status": "pass",
+            "detail": "Recorded iteration 600 of 600."
+          },
+          {
+            "name": "Prescribed inlet flow",
+            "status": "pass",
+            "detail": "Measured 1.5707963e-07 m³/s; prescribed 1.5707963e-07 m³/s."
+          },
+          {
+            "name": "Mass conservation",
+            "status": "pass",
+            "detail": "Net flow imbalance 0.0000%; limit 0.1%."
+          },
+          {
+            "name": "Pressure-drop stability",
+            "status": "pass",
+            "detail": "Positive inlet-to-outlet drop; final-window variation 0.0000%; limit 0.1%."
+          },
+          {
+            "name": "Outlet flow stability",
+            "status": "pass",
+            "detail": "Largest final-window branch variation 0.0000%; limit 0.1%."
+          },
+          {
+            "name": "Equation residuals",
+            "status": "pass",
+            "detail": "Final initial residuals {'Ux': 1.84452378495e-16, 'Uy': 1.87383945997e-16, 'Uz': 3.37043244734e-16, 'p': 8.69082463844e-11}; limit 1e-5."
+          },
+          {
+            "name": "Outlet direction and backflow",
+            "status": "pass",
+            "detail": "Reverse outlet flows / prescribed inlet: {'outlet_1': 0.0}; limit 0.1%."
+          },
+          {
+            "name": "Impermeable walls",
+            "status": "pass",
+            "detail": "Absolute wall flux / inlet flow 0; limit 1e-7."
+          },
+          {
+            "name": "Field export",
+            "status": "pass",
+            "detail": "Native case and VTK fields retained."
+          },
+          {
+            "name": "Frozen native inputs",
+            "status": "pass",
+            "detail": "Approved mesh, dictionaries and initial fields remained unchanged."
+          },
+          {
+            "name": "Frozen geometry and study",
+            "status": "pass",
+            "detail": "Source STEP, study and recipe match the executed inputs."
+          }
+        ],
+        "mesh_hash": "e5b6837316dda7ed8d9e4c2db540afa3aa7ac2ac4dd92648f196ad3a75d423aa",
+        "study_hash": "2d33bd2c37883ad63e767b41da54f16c1c8ea62ae0aa8321ca6368875e946b02"
+      },
+      {
+        "case": "manifold_baseline",
+        "status": "passed",
+        "study": "artifacts/milestone-1-closeout/internal-matrix-fixed/studies/manifold_baseline.json",
+        "mesh_run": "artifacts/milestone-1-closeout/internal-matrix-fixed/stores/manifold_baseline/runs/f4e6e0067bf64287a12be8a898cd09b8",
+        "flow_run": "artifacts/milestone-1-closeout/internal-matrix-fixed/stores/manifold_baseline/runs/fa7a46d094d24f819fa91bf6c67f3e96",
+        "integrity": true,
+        "manifest_sha256": "0b56f313f4cf5f7cd3743ba74025fbede87950a0447df0177a07aed615785521",
+        "cells": 35168,
+        "pressure_drop_pa": 0.04249171460614,
+        "outlets": {
+          "outlet_1": {
+            "face_ids": [
+              "face_cec5d59a563ac5cd"
+            ],
+            "volume_flow_m3_s": 7.853847893508e-08,
+            "flow_fraction": 0.4999914858138055,
+            "pressure_drop_pa": 0.04249171460614,
+            "backflow_fraction": 0.0
+          },
+          "outlet_2": {
+            "face_ids": [
+              "face_8e8cabc457e7438c"
+            ],
+            "volume_flow_m3_s": 7.854115374556e-08,
+            "flow_fraction": 0.5000085141861944,
+            "pressure_drop_pa": 0.04249171460614,
+            "backflow_fraction": 0.0
+          }
+        },
+        "checks": [
+          {
+            "name": "Mesh quality",
+            "status": "pass",
+            "detail": "OpenFOAM checkMesh -allTopology -allGeometry: Mesh OK."
+          },
+          {
+            "name": "Connected fluid mesh",
+            "status": "pass",
+            "detail": "1 connected cell regions; exactly one required."
+          },
+          {
+            "name": "Cell budget",
+            "status": "pass",
+            "detail": "35168 cells; limit 250000."
+          },
+          {
+            "name": "Enclosed volume",
+            "status": "pass",
+            "detail": "CAD/mesh volume difference 0.453%; limit 5%."
+          },
+          {
+            "name": "Boundary completeness",
+            "status": "pass",
+            "detail": "Every selected port and wall must survive meshing; no exposed background patches."
+          },
+          {
+            "name": "inlet mapping",
+            "status": "pass",
+            "detail": "Area error 0.466%; centroid displacement 2.71e-13 m; outward-normal dot 0.9999999999999998."
+          },
+          {
+            "name": "wall mapping",
+            "status": "pass",
+            "detail": "Area error 0.130%; centroid displacement 5.06e-07 m; outward-normal dot not applicable."
+          },
+          {
+            "name": "outlet_1 mapping",
+            "status": "pass",
+            "detail": "Area error 0.462%; centroid displacement 4.18e-08 m; outward-normal dot 1.0000000000000002."
+          },
+          {
+            "name": "outlet_2 mapping",
+            "status": "pass",
+            "detail": "Area error 0.462%; centroid displacement 4.1e-08 m; outward-normal dot 0.9999999999999987."
+          },
+          {
+            "name": "Solver completed",
+            "status": "pass",
+            "detail": "Recorded iteration 600 of 600."
+          },
+          {
+            "name": "Prescribed inlet flow",
+            "status": "pass",
+            "detail": "Measured 1.5707963e-07 m³/s; prescribed 1.5707963e-07 m³/s."
+          },
+          {
+            "name": "Mass conservation",
+            "status": "pass",
+            "detail": "Net flow imbalance 0.0000%; limit 0.1%."
+          },
+          {
+            "name": "Pressure-drop stability",
+            "status": "pass",
+            "detail": "Positive inlet-to-outlet drop; final-window variation 0.0000%; limit 0.1%."
+          },
+          {
+            "name": "Outlet flow stability",
+            "status": "pass",
+            "detail": "Largest final-window branch variation 0.0000%; limit 0.1%."
+          },
+          {
+            "name": "Equation residuals",
+            "status": "pass",
+            "detail": "Final initial residuals {'Ux': 1.83496348081e-12, 'Uy': 1.23056616903e-12, 'Uz': 3.97816248728e-13, 'p': 7.49243660026e-11}; limit 1e-5."
+          },
+          {
+            "name": "Outlet direction and backflow",
+            "status": "pass",
+            "detail": "Reverse outlet flows / prescribed inlet: {'outlet_1': 0.0, 'outlet_2': 0.0}; limit 0.1%."
+          },
+          {
+            "name": "Impermeable walls",
+            "status": "pass",
+            "detail": "Absolute wall flux / inlet flow 0; limit 1e-7."
+          },
+          {
+            "name": "Field export",
+            "status": "pass",
+            "detail": "Native case and VTK fields retained."
+          },
+          {
+            "name": "Frozen native inputs",
+            "status": "pass",
+            "detail": "Approved mesh, dictionaries and initial fields remained unchanged."
+          },
+          {
+            "name": "Frozen geometry and study",
+            "status": "pass",
+            "detail": "Source STEP, study and recipe match the executed inputs."
+          }
+        ],
+        "mesh_hash": "0c4fcf629ed7f6d0f3432bcaa737a37a887a38ba3d5c6e9d8f55a6e0a32164e9",
+        "study_hash": "5efd05d44acb77567ba4e3537000239c5bfc75f33ffbeaec1905732f10508fcf"
+      },
+      {
+        "case": "manifold_fine",
+        "status": "passed",
+        "study": "artifacts/milestone-1-closeout/internal-matrix-fixed/studies/manifold_fine.json",
+        "mesh_run": "artifacts/milestone-1-closeout/internal-matrix-fixed/stores/manifold_fine/runs/c951ee347aac42c6b188bf75ceafd3b0",
+        "flow_run": "artifacts/milestone-1-closeout/internal-matrix-fixed/stores/manifold_fine/runs/c8a8bcfd992948a9a03f47300b22942d",
+        "integrity": true,
+        "manifest_sha256": "0588e9e38f51ad754c13c6f38b59d25d8e7aa8a89d7d8b667615d76ac7a9ba90",
+        "cells": 129298,
+        "pressure_drop_pa": 0.04317591331895,
+        "outlets": {
+          "outlet_1": {
+            "face_ids": [
+              "face_cec5d59a563ac5cd"
+            ],
+            "volume_flow_m3_s": 7.853873641666e-08,
+            "flow_fraction": 0.4999931249988201,
+            "pressure_drop_pa": 0.04317591331895,
+            "backflow_fraction": 0.0
+          },
+          "outlet_2": {
+            "face_ids": [
+              "face_8e8cabc457e7438c"
+            ],
+            "volume_flow_m3_s": 7.854089626198e-08,
+            "flow_fraction": 0.5000068750011799,
+            "pressure_drop_pa": 0.04317591331895,
+            "backflow_fraction": 0.0
+          }
+        },
+        "checks": [
+          {
+            "name": "Mesh quality",
+            "status": "pass",
+            "detail": "OpenFOAM checkMesh -allTopology -allGeometry: Mesh OK."
+          },
+          {
+            "name": "Connected fluid mesh",
+            "status": "pass",
+            "detail": "1 connected cell regions; exactly one required."
+          },
+          {
+            "name": "Cell budget",
+            "status": "pass",
+            "detail": "129298 cells; limit 250000."
+          },
+          {
+            "name": "Enclosed volume",
+            "status": "pass",
+            "detail": "CAD/mesh volume difference 0.233%; limit 5%."
+          },
+          {
+            "name": "Boundary completeness",
+            "status": "pass",
+            "detail": "Every selected port and wall must survive meshing; no exposed background patches."
+          },
+          {
+            "name": "inlet mapping",
+            "status": "pass",
+            "detail": "Area error 0.238%; centroid displacement 1.48e-12 m; outward-normal dot 1.0."
+          },
+          {
+            "name": "wall mapping",
+            "status": "pass",
+            "detail": "Area error 0.077%; centroid displacement 7.54e-07 m; outward-normal dot not applicable."
+          },
+          {
+            "name": "outlet_1 mapping",
+            "status": "pass",
+            "detail": "Area error 0.248%; centroid displacement 1.35e-08 m; outward-normal dot 0.9999999999999997."
+          },
+          {
+            "name": "outlet_2 mapping",
+            "status": "pass",
+            "detail": "Area error 0.248%; centroid displacement 1.36e-08 m; outward-normal dot 0.9999999999999997."
+          },
+          {
+            "name": "Solver completed",
+            "status": "pass",
+            "detail": "Recorded iteration 600 of 600."
+          },
+          {
+            "name": "Prescribed inlet flow",
+            "status": "pass",
+            "detail": "Measured 1.5707963e-07 m³/s; prescribed 1.5707963e-07 m³/s."
+          },
+          {
+            "name": "Mass conservation",
+            "status": "pass",
+            "detail": "Net flow imbalance 0.0000%; limit 0.1%."
+          },
+          {
+            "name": "Pressure-drop stability",
+            "status": "pass",
+            "detail": "Positive inlet-to-outlet drop; final-window variation 0.0000%; limit 0.1%."
+          },
+          {
+            "name": "Outlet flow stability",
+            "status": "pass",
+            "detail": "Largest final-window branch variation 0.0000%; limit 0.1%."
+          },
+          {
+            "name": "Equation residuals",
+            "status": "pass",
+            "detail": "Final initial residuals {'Ux': 9.41608223815e-11, 'Uy': 1.34792556961e-10, 'Uz': 2.3925507943e-11, 'p': 9.40388495256e-11}; limit 1e-5."
+          },
+          {
+            "name": "Outlet direction and backflow",
+            "status": "pass",
+            "detail": "Reverse outlet flows / prescribed inlet: {'outlet_1': 0.0, 'outlet_2': 0.0}; limit 0.1%."
+          },
+          {
+            "name": "Impermeable walls",
+            "status": "pass",
+            "detail": "Absolute wall flux / inlet flow 0; limit 1e-7."
+          },
+          {
+            "name": "Field export",
+            "status": "pass",
+            "detail": "Native case and VTK fields retained."
+          },
+          {
+            "name": "Frozen native inputs",
+            "status": "pass",
+            "detail": "Approved mesh, dictionaries and initial fields remained unchanged."
+          },
+          {
+            "name": "Frozen geometry and study",
+            "status": "pass",
+            "detail": "Source STEP, study and recipe match the executed inputs."
+          }
+        ],
+        "mesh_hash": "7edf26c514d42a671b04da3939dfe5132a686c6c112d6e7d3d4a95372fa65d9b",
+        "study_hash": "e1239492a8b170301c65b110fe6b925566c5840fd6237314af32dfd62dec4914"
+      }
+    ]
+  },
+  "final_corpus": [
+    {
+      "case": "internal-bend0",
+      "run": "artifacts/milestone-1-closeout/clean-corpus/internal-bend0/8feb97dd08fe451e85124e997e945c80",
+      "manifest_sha256": "4c4abc1e86a74816a0fd9bb09344e6285d922c5db474b91a872b4ffdaa81c9a0",
+      "pressure_drop_pa": 0.03515233368224,
+      "outlets": {
+        "outlet_1": {
+          "face_ids": [
+            "face_69b1a965814490c4"
+          ],
+          "volume_flow_m3_s": 1.570796326793e-07,
+          "flow_fraction": 1.0,
+          "pressure_drop_pa": 0.03515233368224,
+          "backflow_fraction": 0.0
+        }
+      },
+      "mesh_hash": "e5b6837316dda7ed8d9e4c2db540afa3aa7ac2ac4dd92648f196ad3a75d423aa",
+      "cells": 7599,
+      "study_hash": "7c25a50252299688c106242af7758b58b009ce8b4e19a94ea8f454ab91d7956b",
+      "checks": [
+        {
+          "name": "Mesh quality",
+          "status": "pass",
+          "detail": "OpenFOAM checkMesh -allTopology -allGeometry: Mesh OK."
+        },
+        {
+          "name": "Connected fluid mesh",
+          "status": "pass",
+          "detail": "1 connected cell regions; exactly one required."
+        },
+        {
+          "name": "Cell budget",
+          "status": "pass",
+          "detail": "7599 cells; limit 250000."
+        },
+        {
+          "name": "Enclosed volume",
+          "status": "pass",
+          "detail": "CAD/mesh volume difference 0.656%; limit 5%."
+        },
+        {
+          "name": "Boundary completeness",
+          "status": "pass",
+          "detail": "Every selected port and wall must survive meshing; no exposed background patches."
+        },
+        {
+          "name": "inlet mapping",
+          "status": "pass",
+          "detail": "Area error 0.717%; centroid displacement 2.89e-06 m; outward-normal dot 0.9999999999999997."
+        },
+        {
+          "name": "wall mapping",
+          "status": "pass",
+          "detail": "Area error 0.234%; centroid displacement 4.83e-06 m; outward-normal dot not applicable."
+        },
+        {
+          "name": "outlet_1 mapping",
+          "status": "pass",
+          "detail": "Area error 0.717%; centroid displacement 2.89e-06 m; outward-normal dot 1.0000000000000007."
+        },
+        {
+          "name": "Solver completed",
+          "status": "pass",
+          "detail": "Recorded iteration 600 of 600."
+        },
+        {
+          "name": "Prescribed inlet flow",
+          "status": "pass",
+          "detail": "Measured 1.5707963e-07 m³/s; prescribed 1.5707963e-07 m³/s."
+        },
+        {
+          "name": "Mass conservation",
+          "status": "pass",
+          "detail": "Net flow imbalance 0.0000%; limit 0.1%."
+        },
+        {
+          "name": "Pressure-drop stability",
+          "status": "pass",
+          "detail": "Positive inlet-to-outlet drop; final-window variation 0.0000%; limit 0.1%."
+        },
+        {
+          "name": "Outlet flow stability",
+          "status": "pass",
+          "detail": "Largest final-window branch variation 0.0000%; limit 0.1%."
+        },
+        {
+          "name": "Equation residuals",
+          "status": "pass",
+          "detail": "Final initial residuals {'Ux': 1.84452378495e-16, 'Uy': 1.87383945997e-16, 'Uz': 3.37043244734e-16, 'p': 8.69082463844e-11}; limit 1e-5."
+        },
+        {
+          "name": "Outlet direction and backflow",
+          "status": "pass",
+          "detail": "Reverse outlet flows / prescribed inlet: {'outlet_1': 0.0}; limit 0.1%."
+        },
+        {
+          "name": "Impermeable walls",
+          "status": "pass",
+          "detail": "Absolute wall flux / inlet flow 0; limit 1e-7."
+        },
+        {
+          "name": "Field export",
+          "status": "pass",
+          "detail": "Native case and VTK fields retained."
+        },
+        {
+          "name": "Frozen native inputs",
+          "status": "pass",
+          "detail": "Approved mesh, dictionaries and initial fields remained unchanged."
+        },
+        {
+          "name": "Frozen geometry and study",
+          "status": "pass",
+          "detail": "Source STEP, study and recipe match the executed inputs."
+        }
+      ]
+    },
+    {
+      "case": "internal-held-out-rotated-duct-20",
+      "run": "artifacts/milestone-1-closeout/clean-corpus/internal-held-out-rotated-duct-20/54ab2320ad2c4c6e95e20dced6a6a216",
+      "manifest_sha256": "012fbd9165e5c9a8928bd33bb4ddee05b57df1f1c26645946cb92bde98030e54",
+      "pressure_drop_pa": 0.03422716465061,
+      "outlets": {
+        "outlet_1": {
+          "face_ids": [
+            "face_2ef7facfc624b40e"
+          ],
+          "volume_flow_m3_s": 8.000000000218e-08,
+          "flow_fraction": 1.0,
+          "pressure_drop_pa": 0.03422716465061,
+          "backflow_fraction": 0.0
+        }
+      },
+      "mesh_hash": "afc4abae33d936ef59c5ac8e514c503fcc840fd5ab0f850c69e792ad79cd60af",
+      "cells": 29751,
+      "study_hash": "e27aeb07a104ee8edd928b6e23ea61e836595ecfa2737c8f16807c5e2b3eae7d",
+      "checks": [
+        {
+          "name": "Mesh quality",
+          "status": "pass",
+          "detail": "OpenFOAM checkMesh -allTopology -allGeometry: Mesh OK."
+        },
+        {
+          "name": "Connected fluid mesh",
+          "status": "pass",
+          "detail": "1 connected cell regions; exactly one required."
+        },
+        {
+          "name": "Cell budget",
+          "status": "pass",
+          "detail": "29751 cells; limit 250000."
+        },
+        {
+          "name": "Enclosed volume",
+          "status": "pass",
+          "detail": "CAD/mesh volume difference 0.012%; limit 5%."
+        },
+        {
+          "name": "Boundary completeness",
+          "status": "pass",
+          "detail": "Every selected port and wall must survive meshing; no exposed background patches."
+        },
+        {
+          "name": "inlet mapping",
+          "status": "pass",
+          "detail": "Area error 0.105%; centroid displacement 4.64e-06 m; outward-normal dot 0.9997089570036729."
+        },
+        {
+          "name": "wall mapping",
+          "status": "pass",
+          "detail": "Area error 0.099%; centroid displacement 4.05e-07 m; outward-normal dot not applicable."
+        },
+        {
+          "name": "outlet_1 mapping",
+          "status": "pass",
+          "detail": "Area error 0.105%; centroid displacement 4.48e-06 m; outward-normal dot 0.999708960419989."
+        },
+        {
+          "name": "Solver completed",
+          "status": "pass",
+          "detail": "Recorded iteration 600 of 600."
+        },
+        {
+          "name": "Prescribed inlet flow",
+          "status": "pass",
+          "detail": "Measured 8e-08 m³/s; prescribed 8e-08 m³/s."
+        },
+        {
+          "name": "Mass conservation",
+          "status": "pass",
+          "detail": "Net flow imbalance 0.0000%; limit 0.1%."
+        },
+        {
+          "name": "Pressure-drop stability",
+          "status": "pass",
+          "detail": "Positive inlet-to-outlet drop; final-window variation 0.0000%; limit 0.1%."
+        },
+        {
+          "name": "Outlet flow stability",
+          "status": "pass",
+          "detail": "Largest final-window branch variation 0.0000%; limit 0.1%."
+        },
+        {
+          "name": "Equation residuals",
+          "status": "pass",
+          "detail": "Final initial residuals {'Ux': 3.60308644348e-13, 'Uy': 1.77691595423e-13, 'Uz': 8.16045768501e-14, 'p': 9.91235491226e-11}; limit 1e-5."
+        },
+        {
+          "name": "Outlet direction and backflow",
+          "status": "pass",
+          "detail": "Reverse outlet flows / prescribed inlet: {'outlet_1': 0.0}; limit 0.1%."
+        },
+        {
+          "name": "Impermeable walls",
+          "status": "pass",
+          "detail": "Absolute wall flux / inlet flow 0; limit 1e-7."
+        },
+        {
+          "name": "Field export",
+          "status": "pass",
+          "detail": "Native case and VTK fields retained."
+        },
+        {
+          "name": "Frozen native inputs",
+          "status": "pass",
+          "detail": "Approved mesh, dictionaries and initial fields remained unchanged."
+        },
+        {
+          "name": "Frozen geometry and study",
+          "status": "pass",
+          "detail": "Source STEP, study and recipe match the executed inputs."
+        }
+      ]
+    },
+    {
+      "case": "internal-held-out-rotated-duct0",
+      "run": "artifacts/milestone-1-closeout/clean-corpus/internal-held-out-rotated-duct0/29c85256a0ae451c9ba5cb38584025d0",
+      "manifest_sha256": "b1739bd2628f1fae4380c4693eff0c0091a65e81743af61ba32462edae7033b5",
+      "pressure_drop_pa": 0.032367783434420004,
+      "outlets": {
+        "outlet_1": {
+          "face_ids": [
+            "face_70aa4aac2abd38cd"
+          ],
+          "volume_flow_m3_s": 8.000000000504e-08,
+          "flow_fraction": 1.0,
+          "pressure_drop_pa": 0.032367783434420004,
+          "backflow_fraction": 0.0
+        }
+      },
+      "mesh_hash": "9181dce4feec811229acb94b77201708937830cc68b0d6755ab31aa626fa41ef",
+      "cells": 20640,
+      "study_hash": "8705e8a8a939e28700528f96cf430518fbdbf3a184b64ab2c5c82861c7a5a920",
+      "checks": [
+        {
+          "name": "Mesh quality",
+          "status": "pass",
+          "detail": "OpenFOAM checkMesh -allTopology -allGeometry: Mesh OK."
+        },
+        {
+          "name": "Connected fluid mesh",
+          "status": "pass",
+          "detail": "1 connected cell regions; exactly one required."
+        },
+        {
+          "name": "Cell budget",
+          "status": "pass",
+          "detail": "20640 cells; limit 250000."
+        },
+        {
+          "name": "Enclosed volume",
+          "status": "pass",
+          "detail": "CAD/mesh volume difference 0.013%; limit 5%."
+        },
+        {
+          "name": "Boundary completeness",
+          "status": "pass",
+          "detail": "Every selected port and wall must survive meshing; no exposed background patches."
+        },
+        {
+          "name": "inlet mapping",
+          "status": "pass",
+          "detail": "Area error 0.179%; centroid displacement 1.04e-05 m; outward-normal dot 0.999909981078656."
+        },
+        {
+          "name": "wall mapping",
+          "status": "pass",
+          "detail": "Area error 0.091%; centroid displacement 4.53e-09 m; outward-normal dot not applicable."
+        },
+        {
+          "name": "outlet_1 mapping",
+          "status": "pass",
+          "detail": "Area error 0.179%; centroid displacement 1.04e-05 m; outward-normal dot 0.9999099806686056."
+        },
+        {
+          "name": "Solver completed",
+          "status": "pass",
+          "detail": "Recorded iteration 600 of 600."
+        },
+        {
+          "name": "Prescribed inlet flow",
+          "status": "pass",
+          "detail": "Measured 8e-08 m³/s; prescribed 8e-08 m³/s."
+        },
+        {
+          "name": "Mass conservation",
+          "status": "pass",
+          "detail": "Net flow imbalance 0.0000%; limit 0.1%."
+        },
+        {
+          "name": "Pressure-drop stability",
+          "status": "pass",
+          "detail": "Positive inlet-to-outlet drop; final-window variation 0.0000%; limit 0.1%."
+        },
+        {
+          "name": "Outlet flow stability",
+          "status": "pass",
+          "detail": "Largest final-window branch variation 0.0000%; limit 0.1%."
+        },
+        {
+          "name": "Equation residuals",
+          "status": "pass",
+          "detail": "Final initial residuals {'Ux': 3.90551722419e-14, 'Uy': 5.05176779405e-14, 'Uz': 1.43053975244e-14, 'p': 9.18288913406e-11}; limit 1e-5."
+        },
+        {
+          "name": "Outlet direction and backflow",
+          "status": "pass",
+          "detail": "Reverse outlet flows / prescribed inlet: {'outlet_1': 0.0}; limit 0.1%."
+        },
+        {
+          "name": "Impermeable walls",
+          "status": "pass",
+          "detail": "Absolute wall flux / inlet flow 0; limit 1e-7."
+        },
+        {
+          "name": "Field export",
+          "status": "pass",
+          "detail": "Native case and VTK fields retained."
+        },
+        {
+          "name": "Frozen native inputs",
+          "status": "pass",
+          "detail": "Approved mesh, dictionaries and initial fields remained unchanged."
+        },
+        {
+          "name": "Frozen geometry and study",
+          "status": "pass",
+          "detail": "Source STEP, study and recipe match the executed inputs."
+        }
+      ]
+    },
+    {
+      "case": "internal-manifold0",
+      "run": "artifacts/milestone-1-closeout/clean-corpus/internal-manifold0/15b67d3701444b1ea068d42a54a2cf89",
+      "manifest_sha256": "1cb25a1120f3dff125af83ae1ca88f68c8a553fdc5faf567005bba26575007ee",
+      "pressure_drop_pa": 0.04249171460614,
+      "outlets": {
+        "outlet_1": {
+          "face_ids": [
+            "face_cec5d59a563ac5cd"
+          ],
+          "volume_flow_m3_s": 7.853847893508e-08,
+          "flow_fraction": 0.4999914858138055,
+          "pressure_drop_pa": 0.04249171460614,
+          "backflow_fraction": 0.0
+        },
+        "outlet_2": {
+          "face_ids": [
+            "face_8e8cabc457e7438c"
+          ],
+          "volume_flow_m3_s": 7.854115374556e-08,
+          "flow_fraction": 0.5000085141861944,
+          "pressure_drop_pa": 0.04249171460614,
+          "backflow_fraction": 0.0
+        }
+      },
+      "mesh_hash": "0c4fcf629ed7f6d0f3432bcaa737a37a887a38ba3d5c6e9d8f55a6e0a32164e9",
+      "cells": 35168,
+      "study_hash": "1d0ff0eb1f0fa6bae4edb217b3973cca3e05db86b3ff1c493003134e60d23818",
+      "checks": [
+        {
+          "name": "Mesh quality",
+          "status": "pass",
+          "detail": "OpenFOAM checkMesh -allTopology -allGeometry: Mesh OK."
+        },
+        {
+          "name": "Connected fluid mesh",
+          "status": "pass",
+          "detail": "1 connected cell regions; exactly one required."
+        },
+        {
+          "name": "Cell budget",
+          "status": "pass",
+          "detail": "35168 cells; limit 250000."
+        },
+        {
+          "name": "Enclosed volume",
+          "status": "pass",
+          "detail": "CAD/mesh volume difference 0.453%; limit 5%."
+        },
+        {
+          "name": "Boundary completeness",
+          "status": "pass",
+          "detail": "Every selected port and wall must survive meshing; no exposed background patches."
+        },
+        {
+          "name": "inlet mapping",
+          "status": "pass",
+          "detail": "Area error 0.466%; centroid displacement 2.71e-13 m; outward-normal dot 0.9999999999999998."
+        },
+        {
+          "name": "wall mapping",
+          "status": "pass",
+          "detail": "Area error 0.130%; centroid displacement 5.06e-07 m; outward-normal dot not applicable."
+        },
+        {
+          "name": "outlet_1 mapping",
+          "status": "pass",
+          "detail": "Area error 0.462%; centroid displacement 4.18e-08 m; outward-normal dot 1.0000000000000002."
+        },
+        {
+          "name": "outlet_2 mapping",
+          "status": "pass",
+          "detail": "Area error 0.462%; centroid displacement 4.1e-08 m; outward-normal dot 0.9999999999999987."
+        },
+        {
+          "name": "Solver completed",
+          "status": "pass",
+          "detail": "Recorded iteration 600 of 600."
+        },
+        {
+          "name": "Prescribed inlet flow",
+          "status": "pass",
+          "detail": "Measured 1.5707963e-07 m³/s; prescribed 1.5707963e-07 m³/s."
+        },
+        {
+          "name": "Mass conservation",
+          "status": "pass",
+          "detail": "Net flow imbalance 0.0000%; limit 0.1%."
+        },
+        {
+          "name": "Pressure-drop stability",
+          "status": "pass",
+          "detail": "Positive inlet-to-outlet drop; final-window variation 0.0000%; limit 0.1%."
+        },
+        {
+          "name": "Outlet flow stability",
+          "status": "pass",
+          "detail": "Largest final-window branch variation 0.0000%; limit 0.1%."
+        },
+        {
+          "name": "Equation residuals",
+          "status": "pass",
+          "detail": "Final initial residuals {'Ux': 1.83496348081e-12, 'Uy': 1.23056616903e-12, 'Uz': 3.97816248728e-13, 'p': 7.49243660026e-11}; limit 1e-5."
+        },
+        {
+          "name": "Outlet direction and backflow",
+          "status": "pass",
+          "detail": "Reverse outlet flows / prescribed inlet: {'outlet_1': 0.0, 'outlet_2': 0.0}; limit 0.1%."
+        },
+        {
+          "name": "Impermeable walls",
+          "status": "pass",
+          "detail": "Absolute wall flux / inlet flow 0; limit 1e-7."
+        },
+        {
+          "name": "Field export",
+          "status": "pass",
+          "detail": "Native case and VTK fields retained."
+        },
+        {
+          "name": "Frozen native inputs",
+          "status": "pass",
+          "detail": "Approved mesh, dictionaries and initial fields remained unchanged."
+        },
+        {
+          "name": "Frozen geometry and study",
+          "status": "pass",
+          "detail": "Source STEP, study and recipe match the executed inputs."
+        }
+      ]
+    },
+    {
+      "case": "internal-pipe0",
+      "run": "artifacts/milestone-1-closeout/clean-corpus/internal-pipe0/be466a77054f457c95b607c75a057bc2",
+      "manifest_sha256": "92103765ff3d2a7a26aaf7d4e62e0d182298ffeadbe0e00b83785ad676e7c8cd",
+      "pressure_drop_pa": 0.06836236438782001,
+      "outlets": {
+        "outlet_1": {
+          "face_ids": [
+            "face_09a23274142ad8dc"
+          ],
+          "volume_flow_m3_s": 1.570796326677e-07,
+          "flow_fraction": 1.0,
+          "pressure_drop_pa": 0.06836236438782001,
+          "backflow_fraction": 0.0
+        }
+      },
+      "mesh_hash": "ab259a876e77cdc390937e2cf274465dd7c22876a71279419825a30081962ca7",
+      "cells": 17125,
+      "study_hash": "dae6ac899c17a30fb0c8129fdf992b0ad3d849309acb0d5d02f6a6187b973e30",
+      "checks": [
+        {
+          "name": "Mesh quality",
+          "status": "pass",
+          "detail": "OpenFOAM checkMesh -allTopology -allGeometry: Mesh OK."
+        },
+        {
+          "name": "Connected fluid mesh",
+          "status": "pass",
+          "detail": "1 connected cell regions; exactly one required."
+        },
+        {
+          "name": "Cell budget",
+          "status": "pass",
+          "detail": "17125 cells; limit 250000."
+        },
+        {
+          "name": "Enclosed volume",
+          "status": "pass",
+          "detail": "CAD/mesh volume difference 0.657%; limit 5%."
+        },
+        {
+          "name": "Boundary completeness",
+          "status": "pass",
+          "detail": "Every selected port and wall must survive meshing; no exposed background patches."
+        },
+        {
+          "name": "inlet mapping",
+          "status": "pass",
+          "detail": "Area error 0.593%; centroid displacement 2.19e-09 m; outward-normal dot 1.0000000000000004."
+        },
+        {
+          "name": "wall mapping",
+          "status": "pass",
+          "detail": "Area error 0.181%; centroid displacement 1.91e-08 m; outward-normal dot not applicable."
+        },
+        {
+          "name": "outlet_1 mapping",
+          "status": "pass",
+          "detail": "Area error 0.603%; centroid displacement 1.3e-08 m; outward-normal dot 1.0000000000000004."
+        },
+        {
+          "name": "Solver completed",
+          "status": "pass",
+          "detail": "Recorded iteration 600 of 600."
+        },
+        {
+          "name": "Prescribed inlet flow",
+          "status": "pass",
+          "detail": "Measured 1.5707963e-07 m³/s; prescribed 1.5707963e-07 m³/s."
+        },
+        {
+          "name": "Mass conservation",
+          "status": "pass",
+          "detail": "Net flow imbalance 0.0000%; limit 0.1%."
+        },
+        {
+          "name": "Pressure-drop stability",
+          "status": "pass",
+          "detail": "Positive inlet-to-outlet drop; final-window variation 0.0000%; limit 0.1%."
+        },
+        {
+          "name": "Outlet flow stability",
+          "status": "pass",
+          "detail": "Largest final-window branch variation 0.0000%; limit 0.1%."
+        },
+        {
+          "name": "Equation residuals",
+          "status": "pass",
+          "detail": "Final initial residuals {'Ux': 1.35664071233e-14, 'Uy': 4.12374135797e-14, 'Uz': 1.48067453658e-15, 'p': 9.38674135965e-11}; limit 1e-5."
+        },
+        {
+          "name": "Outlet direction and backflow",
+          "status": "pass",
+          "detail": "Reverse outlet flows / prescribed inlet: {'outlet_1': 0.0}; limit 0.1%."
+        },
+        {
+          "name": "Impermeable walls",
+          "status": "pass",
+          "detail": "Absolute wall flux / inlet flow 0; limit 1e-7."
+        },
+        {
+          "name": "Field export",
+          "status": "pass",
+          "detail": "Native case and VTK fields retained."
+        },
+        {
+          "name": "Frozen native inputs",
+          "status": "pass",
+          "detail": "Approved mesh, dictionaries and initial fields remained unchanged."
+        },
+        {
+          "name": "Frozen geometry and study",
+          "status": "pass",
+          "detail": "Source STEP, study and recipe match the executed inputs."
+        }
+      ]
+    },
+    {
+      "case": "internal-rectangular0",
+      "run": "artifacts/milestone-1-closeout/clean-corpus/internal-rectangular0/5d43266754e9481ea0cfd139e81b7e0d",
+      "manifest_sha256": "6cfdc69293c4f0543252f83406cc00e61ebc271224536aa6d68f3f2926926314",
+      "pressure_drop_pa": 0.03030019840539,
+      "outlets": {
+        "outlet_1": {
+          "face_ids": [
+            "face_c93ed56bda2f7d97"
+          ],
+          "volume_flow_m3_s": 7.99999999995e-08,
+          "flow_fraction": 1.0,
+          "pressure_drop_pa": 0.03030019840539,
+          "backflow_fraction": 0.0
+        }
+      },
+      "mesh_hash": "b7bded2cde5beb8ef46f007a5b46e0ab4de71413f053613e411d6dcf561dad30",
+      "cells": 20700,
+      "study_hash": "a751e1c1eb3ca6283431dd36c54d7748e235e80ec7c746aaff6c5eaf47e253ab",
+      "checks": [
+        {
+          "name": "Mesh quality",
+          "status": "pass",
+          "detail": "OpenFOAM checkMesh -allTopology -allGeometry: Mesh OK."
+        },
+        {
+          "name": "Connected fluid mesh",
+          "status": "pass",
+          "detail": "1 connected cell regions; exactly one required."
+        },
+        {
+          "name": "Cell budget",
+          "status": "pass",
+          "detail": "20700 cells; limit 250000."
+        },
+        {
+          "name": "Enclosed volume",
+          "status": "pass",
+          "detail": "CAD/mesh volume difference 0.000%; limit 5%."
+        },
+        {
+          "name": "Boundary completeness",
+          "status": "pass",
+          "detail": "Every selected port and wall must survive meshing; no exposed background patches."
+        },
+        {
+          "name": "inlet mapping",
+          "status": "pass",
+          "detail": "Area error 0.000%; centroid displacement 2.2e-10 m; outward-normal dot 0.9999999999999998."
+        },
+        {
+          "name": "wall mapping",
+          "status": "pass",
+          "detail": "Area error 0.000%; centroid displacement 9.21e-10 m; outward-normal dot not applicable."
+        },
+        {
+          "name": "outlet_1 mapping",
+          "status": "pass",
+          "detail": "Area error 0.000%; centroid displacement 1.8e-09 m; outward-normal dot 0.9999999999999997."
+        },
+        {
+          "name": "Solver completed",
+          "status": "pass",
+          "detail": "Recorded iteration 600 of 600."
+        },
+        {
+          "name": "Prescribed inlet flow",
+          "status": "pass",
+          "detail": "Measured 8e-08 m³/s; prescribed 8e-08 m³/s."
+        },
+        {
+          "name": "Mass conservation",
+          "status": "pass",
+          "detail": "Net flow imbalance 0.0000%; limit 0.1%."
+        },
+        {
+          "name": "Pressure-drop stability",
+          "status": "pass",
+          "detail": "Positive inlet-to-outlet drop; final-window variation 0.0000%; limit 0.1%."
+        },
+        {
+          "name": "Outlet flow stability",
+          "status": "pass",
+          "detail": "Largest final-window branch variation 0.0000%; limit 0.1%."
+        },
+        {
+          "name": "Equation residuals",
+          "status": "pass",
+          "detail": "Final initial residuals {'Ux': 2.52465095494e-10, 'Uy': 2.88957806192e-11, 'Uz': 4.89225864489e-13, 'p': 2.24411025278e-11}; limit 1e-5."
+        },
+        {
+          "name": "Outlet direction and backflow",
+          "status": "pass",
+          "detail": "Reverse outlet flows / prescribed inlet: {'outlet_1': 0.0}; limit 0.1%."
+        },
+        {
+          "name": "Impermeable walls",
+          "status": "pass",
+          "detail": "Absolute wall flux / inlet flow 0; limit 1e-7."
+        },
+        {
+          "name": "Field export",
+          "status": "pass",
+          "detail": "Native case and VTK fields retained."
+        },
+        {
+          "name": "Frozen native inputs",
+          "status": "pass",
+          "detail": "Approved mesh, dictionaries and initial fields remained unchanged."
+        },
+        {
+          "name": "Frozen geometry and study",
+          "status": "pass",
+          "detail": "Source STEP, study and recipe match the executed inputs."
+        }
+      ]
+    }
+  ],
+  "clean_legacy_replay": {
+    "run": "artifacts/milestone-1-closeout/clean-legacy-replay",
+    "status": "passed",
+    "manifest_sha256": "a4e7ba68cb6f8520b778a4aa74f68a1e60e062eefd80f9ca6e45f8d879b67921",
+    "pressure_drop_pa": 0.04249171460614,
+    "outlets": {
+      "outlet_1": {
+        "face_ids": [
+          "face_cec5d59a563ac5cd"
+        ],
+        "volume_flow_m3_s": 7.853847893508e-08,
+        "flow_fraction": 0.4999914858138055,
+        "pressure_drop_pa": 0.04249171460614,
+        "backflow_fraction": 0.0
+      },
+      "outlet_2": {
+        "face_ids": [
+          "face_8e8cabc457e7438c"
+        ],
+        "volume_flow_m3_s": 7.854115374556e-08,
+        "flow_fraction": 0.5000085141861944,
+        "pressure_drop_pa": 0.04249171460614,
+        "backflow_fraction": 0.0
+      }
+    },
+    "reproduction_relative_difference": 0.0,
+    "checks": [
+      {
+        "name": "Mesh quality",
+        "status": "pass",
+        "detail": "OpenFOAM checkMesh -allTopology -allGeometry: Mesh OK."
+      },
+      {
+        "name": "Connected fluid mesh",
+        "status": "pass",
+        "detail": "1 connected cell regions; exactly one required."
+      },
+      {
+        "name": "Cell budget",
+        "status": "pass",
+        "detail": "35168 cells; limit 250000."
+      },
+      {
+        "name": "Enclosed volume",
+        "status": "pass",
+        "detail": "CAD/mesh volume difference 0.453%; limit 5%."
+      },
+      {
+        "name": "Boundary completeness",
+        "status": "pass",
+        "detail": "Every selected port and wall must survive meshing; no exposed background patches."
+      },
+      {
+        "name": "inlet mapping",
+        "status": "pass",
+        "detail": "Area error 0.466%; centroid displacement 2.71e-13 m; outward-normal dot 0.9999999999999998."
+      },
+      {
+        "name": "wall mapping",
+        "status": "pass",
+        "detail": "Area error 0.130%; centroid displacement 5.06e-07 m; outward-normal dot not applicable."
+      },
+      {
+        "name": "outlet_1 mapping",
+        "status": "pass",
+        "detail": "Area error 0.462%; centroid displacement 4.18e-08 m; outward-normal dot 1.0000000000000002."
+      },
+      {
+        "name": "outlet_2 mapping",
+        "status": "pass",
+        "detail": "Area error 0.462%; centroid displacement 4.1e-08 m; outward-normal dot 0.9999999999999987."
+      },
+      {
+        "name": "Solver completed",
+        "status": "pass",
+        "detail": "Recorded iteration 600 of 600."
+      },
+      {
+        "name": "Prescribed inlet flow",
+        "status": "pass",
+        "detail": "Measured 1.5707963e-07 m³/s; prescribed 1.5707963e-07 m³/s."
+      },
+      {
+        "name": "Mass conservation",
+        "status": "pass",
+        "detail": "Net flow imbalance 0.0000%; limit 0.1%."
+      },
+      {
+        "name": "Pressure-drop stability",
+        "status": "pass",
+        "detail": "Positive inlet-to-outlet drop; final-window variation 0.0000%; limit 0.1%."
+      },
+      {
+        "name": "Outlet flow stability",
+        "status": "pass",
+        "detail": "Largest final-window branch variation 0.0000%; limit 0.1%."
+      },
+      {
+        "name": "Equation residuals",
+        "status": "pass",
+        "detail": "Final initial residuals {'Ux': 1.83496348081e-12, 'Uy': 1.23056616903e-12, 'Uz': 3.97816248728e-13, 'p': 7.49243660026e-11}; limit 1e-5."
+      },
+      {
+        "name": "Outlet direction and backflow",
+        "status": "pass",
+        "detail": "Reverse outlet flows / prescribed inlet: {'outlet_1': 0.0, 'outlet_2': 0.0}; limit 0.1%."
+      },
+      {
+        "name": "Impermeable walls",
+        "status": "pass",
+        "detail": "Absolute wall flux / inlet flow 0; limit 1e-7."
+      },
+      {
+        "name": "Field export",
+        "status": "pass",
+        "detail": "Native case and VTK fields retained."
+      },
+      {
+        "name": "Frozen native inputs",
+        "status": "pass",
+        "detail": "Approved mesh, dictionaries and initial fields remained unchanged."
+      },
+      {
+        "name": "Reproduction agreement",
+        "status": "pass",
+        "detail": "Largest pressure/branch-flow relative difference 0; limit 1e-6."
+      },
+      {
+        "name": "Frozen geometry and study",
+        "status": "pass",
+        "detail": "Source STEP, study and recipe match the executed inputs."
+      }
+    ]
+  },
+  "log_sha256": {
+    "browser-fixed.log": "4de62207c63001bebd2db1852962514248c43f57202a2a452da555984289d787",
+    "clean-final-tests.log": "2bb6dc1530c7d6722dff94ad6cef72ab018f96b63618efa5f6bd0335071775e8",
+    "clean-install.log": "fb055869d3c874aa41f8af89f80073732355bffde5bf964036d712840173d2d8",
+    "internal-matrix-fixed.log": "4e0052040ec3ece4f5aaab1f5a06426f450c1d40b029da2e207fe3a17595ddb8",
+    "seed-after-fix.log": "867a3153adbda1c7318b73c235373a1167fbdd122cdcdaf2b890932509cd3066",
+    "native-build.log": "0bbe5fcc104092521036baa62a45c1985cf7e53108d205b00f402a008ee8b7ae",
+    "clean-final-replay.log": "01bbec988f7e2c0065533f476eeed8429f36ce262751d5127f0eb5f0fd3f4a94",
+    "summary.log": "bbe3cb06fc25f09a9f074b33061fa77e1d2bf1dbf014f6a7bdb6d06d030b9e5e",
+    "browser-race-before-fix.log": "502ebd33bb00d4fc01f99724826f5a08e7537ebc4614961c593b6073c803df5f",
+    "browser.log": "3e3c68a58824c7dab3cffd199b2c0ed3eb99c1a13d5c2b055aa234f19add7db4",
+    "seed-before-fix.log": "f1da98e78ac22b7ffe79d9498464a642b31d4f3f2c1980fe078598e58d120edd",
+    "clean-prepare.log": "0228c6321357521bcb3fbac799ad2cbb8ef0f1c6fcf2a4e7901755a45a84ae05",
+    "internal-matrix.log": "14fe7c951a1e9bad3d3e1d3c8714684babaf53a5c02e7bcb79b294c5cc93edbc"
+  },
+  "native_binary_sha256": "e3f63cc724ffd613784994f275d66a55d31c1b856c387dda80ce00b476cb7093",
+  "remaining_qualification": [
+    "Independent CFD review of recipes and tolerances",
+    "Formal grid convergence and experimental/customer-CAD validation",
+    "Native Windows/macOS/ARM qualification",
+    "Release packaging/signing and distribution review"
+  ],
+  "retained_failures": {
+    "browser_race": "browser-race-before-fix.log; forced retry poll-before-submit fails on original code",
+    "mesh_seed": "internal-matrix bend_fine: exterior retained, +244.163% volume error; safely refused; corrected without relaxed criteria",
+    "seed_unit_regression": "seed-before-fix.log: 2 failed at 0.625/0.5 mm; seed-after-fix.log: 4 passed"
+  }
+}

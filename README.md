@@ -4,6 +4,10 @@ A local CFD workbench with inspectable geometry, deterministic execution, and ev
 
 This checkout implements **milestone 1b**: prepared STEP fluid volume → confirmed ports → reviewed mesh → laminar flow → pressure loss and outlet flow split, through the desktop and CLI. The milestone-1a analytical pipe reference remains available. Numerical criteria are provisional; independent CFD review, mesh independence, and native Windows/macOS qualification remain pending.
 
+The [milestone 1 closeout](docs/milestone-1-closeout.md) records the additional
+clean-install, replay, mesh-sensitivity and browser regressions, fixes found in
+testing, and the remaining qualification work.
+
 ## Try it on Ubuntu 22.04 / WSL2
 
 Prerequisites: [uv](https://docs.astral.sh/uv/) and Node.js 22.12+ **inside Linux**. uv installs the project's Python 3.12 interpreter. The CAD bindings also require Linux graphics libraries, even when running the worker without a display. The native desktop additionally needs Rust and the [Tauri Linux prerequisites](https://v2.tauri.app/start/prerequisites/). Browser mode does not need Rust.

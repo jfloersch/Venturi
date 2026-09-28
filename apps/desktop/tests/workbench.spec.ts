@@ -1,5 +1,55 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page, type Route } from "@playwright/test";
 import { readFileSync } from "node:fs";
+
+const duplicateRunErrors = new WeakMap<Page, string[]>();
+test.beforeEach(({ page }) => {
+  const errors: string[] = [];
+  duplicateRunErrors.set(page, errors);
+  page.on("console", (message) => {
+    if (message.type() === "error" && message.text().includes("same key"))
+      errors.push(message.text());
+  });
+});
+test.afterEach(({ page }) => {
+  expect(duplicateRunErrors.get(page)).toEqual([]);
+});
+
+// Force the real poll response to list a run before its POST response arrives.
+// Submission and polling must converge on one sidebar entry for that attempt.
+async function submitAfterPoll(page: Page, submit: () => Promise<void>) {
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => (release = resolve));
+  let finish!: () => void;
+  const delivered = new Promise<void>((resolve) => (finish = resolve));
+  let runId = "";
+  const handler = async (route: Route) => {
+    if (route.request().method() !== "POST") return route.continue();
+    const response = await route.fetch();
+    expect(response.ok()).toBeTruthy();
+    runId = (await response.json()).id;
+    await held;
+    await route.fulfill({ response });
+    finish();
+  };
+  await page.route("**/v1/runs", handler);
+  try {
+    await submit();
+    await expect.poll(() => runId).not.toBe("");
+    const entry = page.locator(".run-list button").filter({
+      hasText: runId.slice(0, 8),
+    });
+    await expect(entry).toHaveCount(1);
+    release();
+    await delivered;
+    await expect(page.locator(".run-heading code")).toHaveText(
+      `RUN ${runId.slice(0, 12)}`,
+    );
+    await expect(entry).toHaveCount(1);
+  } finally {
+    release();
+    await page.unroute("**/v1/runs", handler);
+  }
+}
 
 test("requires the local worker token", async ({ page }) => {
   await page.goto("/");
@@ -110,7 +160,9 @@ test("cancellation retains a report and retry creates a separate attempt", async
   await expect(page.locator(".evidence-checks")).toContainText(
     "Execution completed",
   );
-  await page.getByRole("button", { name: "Retry as a new attempt" }).click();
+  await submitAfterPoll(page, () =>
+    page.getByRole("button", { name: "Retry as a new attempt" }).click(),
+  );
   await expect(page.locator(".run-heading code")).not.toHaveText(original!);
   await expect(
     page.getByText("The original evidence is retained.", { exact: false }),
@@ -173,7 +225,9 @@ test("prepared manifold: import, explicit ports, mesh review, flow split and exp
     path: "../../artifacts/milestone-1b/browser-import.png",
     fullPage: true,
   });
-  await page.getByRole("button", { name: "Build mesh for review" }).click();
+  await submitAfterPoll(page, () =>
+    page.getByRole("button", { name: "Build mesh for review" }).click(),
+  );
   await expect(page.locator(".status-pill")).toHaveText("passed", {
     timeout: 90_000,
   });
@@ -197,9 +251,9 @@ test("prepared manifold: import, explicit ports, mesh review, flow split and exp
     path: "../../artifacts/milestone-1b/browser-mesh.png",
     fullPage: true,
   });
-  await page
-    .getByRole("button", { name: "Approve saved study & solve" })
-    .click();
+  await submitAfterPoll(page, () =>
+    page.getByRole("button", { name: "Approve saved study & solve" }).click(),
+  );
   await expect(page.locator(".run-heading code")).not.toHaveText(meshId!);
   await expect(page.locator(".status-pill")).toHaveText("passed", {
     timeout: 180_000,
