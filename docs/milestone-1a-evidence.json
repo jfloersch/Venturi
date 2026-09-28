@@ -1,0 +1,18 @@
+{
+  "schema_version": "venturi.acceptance.v1",
+  "date": "2026-09-27",
+  "worker_version": "0.1.0",
+  "platform": "Ubuntu 22.04 x86_64 / WSL2",
+  "recipe": "laminar-pipe/1",
+  "study_hash": "a669f03304e8428d697df83bda2b040bfd8db46800d03e782d8509b8123e50e0",
+  "recipe_hash": "d3fd95dbc475cf4edc54cf2274b670bd8ea960fee1cd7b9f513a68d80896af64",
+  "pressure_drop_pa": 0.3226294589544,
+  "analytical_pressure_drop_pa": 0.32000000000000006,
+  "relative_error": 0.008217059232499753,
+  "mass_imbalance": 6.111587799249257e-12,
+  "reproduction_relative_difference": 0.0,
+  "reference_manifest_sha256": "82eb7863806d1254f8c0a6912f8d087c0d44665915a3b0a59507fbb96ea564a2",
+  "reference_zip_sha256": "9046c5e19a5d2b949314e92cd79f305d851bde6634b3bd400039b3900761ecff",
+  "reproduction_manifest_sha256": "0e008ac8bfca49eb5b6c56889f8bae0f904c21e0647d5c378a3af49de893af40",
+  "qualification": "Provisional pipe benchmark; independent CFD and native platform qualification pending"
+}

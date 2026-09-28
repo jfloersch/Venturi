@@ -31,7 +31,8 @@ def histories(
         )
     p = folder / "500/p"
     p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text("dimensions [0 2 -2 0 0 0 0];")
+    p.write_text("dimensions [0 2 -2 0 0 0 0]; internalField uniform 0;")
+    p.with_name("U").write_text("dimensions [0 1 -1 0 0 0 0]; internalField uniform (0 0 0.01);")
     p = folder.parent / "logs/foamRun.log"
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(
@@ -92,3 +93,39 @@ def test_pressure_dimensions_must_match_before_conversion(tmp_path):
     (case / "500/p").write_text("dimensions [1 -1 -2 0 0 0 0];")
     with pytest.raises(ValueError, match="Pressure dimensions"):
         reference_evidence(case, PipeSpec())
+
+
+@pytest.mark.parametrize(
+    "mutation", ["missing_u", "nonfinite_u", "short_field", "gap", "fractional_time"]
+)
+def test_incomplete_final_evidence_is_rejected(tmp_path, mutation):
+    case = tmp_path / "case"
+    histories(case)
+    if mutation == "missing_u":
+        (case / "500/U").unlink()
+    elif mutation == "nonfinite_u":
+        (case / "500/U").write_text("dimensions [0 1 -1 0 0 0 0]; internalField uniform (0 nan 0);")
+    elif mutation == "short_field":
+        (case / "500/p").write_text(
+            "dimensions [0 2 -2 0 0 0 0]; internalField nonuniform List<scalar> 3 (1 2);"
+        )
+    else:
+        for path in case.glob("postProcessing/*/0/surfaceFieldValue.dat"):
+            text = path.read_text()
+            lines = text.splitlines()
+            if mutation == "gap":
+                lines.pop(200)
+            else:
+                lines[200] = lines[200].replace("200 ", "200.5 ")
+            path.write_text("\n".join(lines))
+    with pytest.raises(ValueError):
+        reference_evidence(case, PipeSpec())
+
+
+def test_nonfinite_last_residual_cannot_reuse_earlier_good_value(tmp_path):
+    case = tmp_path / "case"
+    histories(case)
+    with (tmp_path / "logs/foamRun.log").open("a") as out:
+        out.write("\nSolving for p, Initial residual = nan, Final residual = nan\nEnd\n")
+    result = reference_evidence(case, PipeSpec())
+    assert result["status"] == "failed"

@@ -6,12 +6,18 @@ import platform
 import re
 import signal
 import subprocess
+import sys
+import tempfile
 import threading
 import time
+from contextlib import contextmanager
+from contextvars import ContextVar
+from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 
 from . import PROTOCOL_VERSION, __version__
-from .models import file_hash
+from .models import ResourcePolicy, file_hash, write_json
 
 ALLOWED = {"blockMesh", "checkMesh", "snappyHexMesh", "foamRun", "foamToVTK"}
 
@@ -35,7 +41,11 @@ def foam_environment(root: Path) -> tuple[Path, dict[str, str]]:
         raise RuntimeError("Expected one double-precision, 32-bit-label Linux OpenFOAM build.")
     build = variants[0]
     lib = build / "lib"
-    env = os.environ.copy()
+    env = {
+        key: os.environ[key]
+        for key in ("HOME", "PATH", "LANG", "LC_ALL", "TMPDIR")
+        if key in os.environ
+    }
     env.update(
         {
             "WM_PROJECT_DIR": str(root),
@@ -49,9 +59,7 @@ def foam_environment(root: Path) -> tuple[Path, dict[str, str]]:
         }
     )
     extra = root.parent.parent / "usr/lib/x86_64-linux-gnu"
-    env["LD_LIBRARY_PATH"] = ":".join(
-        [str(lib / "dummy"), str(lib), str(extra), env.get("LD_LIBRARY_PATH", "")]
-    )
+    env["LD_LIBRARY_PATH"] = ":".join([str(lib / "dummy"), str(lib), str(extra)])
     env["PATH"] = str(build / "bin") + os.pathsep + env.get("PATH", "")
     return build, env
 
@@ -123,6 +131,88 @@ class RunCancelled(RuntimeError):
     pass
 
 
+class ResourceExceeded(RuntimeError):
+    pass
+
+
+def process_identity(pid: int) -> dict | None:
+    """Boot + start ticks prevent accidentally acting on a reused Linux PID."""
+    try:
+        stat = Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()
+        if stat[0] == "Z":
+            return None
+        return {
+            "pid": pid,
+            "start_ticks": stat[19],
+            "boot_id": Path("/proc/sys/kernel/random/boot_id").read_text().strip(),
+        }
+    except (OSError, IndexError):
+        return None
+
+
+def process_alive(identity: dict | None) -> bool:
+    return bool(identity and process_identity(identity["pid"]) == identity)
+
+
+def terminate_group(identity: dict | None) -> None:
+    if process_alive(identity):
+        try:
+            os.killpg(identity["pid"], signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+
+
+def event(folder: Path, kind: str, **details) -> None:
+    stamp = time.time_ns()
+    write_json(
+        folder / "events" / f"{stamp}.json",
+        {
+            "time": datetime.now(UTC).isoformat(),
+            "event": kind,
+            **details,
+        },
+    )
+
+
+@dataclass
+class Execution:
+    folder: Path
+    policy: ResourcePolicy
+    deadline: float
+
+    def check(self):
+        if time.monotonic() >= self.deadline:
+            raise TimeoutError("Attempt exceeded its total wall-time limit.")
+        size = 0
+        for path in self.folder.rglob("*"):
+            try:
+                if path.is_file():
+                    size += path.stat().st_size
+            except FileNotFoundError:
+                continue  # Atomic control-file replacement can race this inventory.
+        if size > self.policy.disk_mb * 1024 * 1024:
+            raise ResourceExceeded(f"Attempt exceeded its {self.policy.disk_mb} MiB disk limit.")
+
+
+_execution: ContextVar[Execution | None] = ContextVar("execution", default=None)
+
+
+@contextmanager
+def execution_context(folder: Path, policy: ResourcePolicy):
+    token = _execution.set(Execution(folder, policy, time.monotonic() + policy.wall_time_seconds))
+    try:
+        yield
+    finally:
+        _execution.reset(token)
+
+
+def check_execution(cancel=None):
+    if cancel is not None and cancel.is_set():
+        raise RunCancelled("Cancelled by the user; partial evidence was preserved.")
+    if context := _execution.get():
+        context.check()
+
+
 def run_tool(
     name: str,
     case: Path,
@@ -130,8 +220,28 @@ def run_tool(
     cancel: threading.Event | None = None,
     args: tuple[str, ...] = (),
 ) -> Path:
+    with tool_case_path(case) as execution_case:
+        return _run_tool(name, case, timeout, cancel, args, execution_case)
+
+
+@contextmanager
+def tool_case_path(case: Path):
+    resolved = case.resolve()
+    if re.fullmatch(r"[A-Za-z0-9_./+-]+", str(resolved)):
+        yield resolved
+    else:
+        # OpenFOAM's fileName parser rejects spaces and non-ASCII even with argv.
+        # An ASCII symlink keeps every generated artifact in the user's folder.
+        with tempfile.TemporaryDirectory(prefix="venturi-case-", dir="/tmp") as temporary:
+            alias = Path(temporary) / "case"
+            alias.symlink_to(resolved, target_is_directory=True)
+            yield alias
+
+
+def _run_tool(name, case, timeout, cancel, args, execution_case):
     if name not in ALLOWED:
         raise ValueError("Tool is not in the worker allowlist.")
+    check_execution(cancel)
     root = find_foam_root()
     if root is None:
         raise RuntimeError("OpenFOAM 14 is unavailable. Run the worker setup first.")
@@ -140,18 +250,40 @@ def run_tool(
     logs.mkdir(parents=True, exist_ok=True)
     log = logs / f"{name}.log"
     deadline = time.monotonic() + timeout
+    context = _execution.get()
+    command = [str(build / "bin" / name), "-case", str(execution_case), *args]
+    record_path = case.parent / "commands" / f"{time.time_ns()}-{name}.json"
+    record = {
+        "tool": name,
+        "argv": [name, "-case", "case", *args],
+        "executable_sha256": file_hash(build / "bin" / name),
+        "timeout_seconds": timeout,
+        "started_at": datetime.now(UTC).isoformat(),
+        "status": "starting",
+    }
+    write_json(record_path, record)
+    if sys.platform.startswith("linux"):
+        command = [
+            sys.executable,
+            str(Path(__file__).with_name("process.py")),
+            str(os.getpid()),
+            str(context.policy.memory_mb if context else 0),
+            *command,
+        ]
     with log.open("w") as output:
         proc = subprocess.Popen(
-            [str(build / "bin" / name), "-case", str(case.resolve()), *args],
+            command,
             stdout=output,
             stderr=subprocess.STDOUT,
             env=env,
             start_new_session=True,
         )
+        record.update(status="running", process=process_identity(proc.pid))
+        write_json(record_path, record)
+        event(case.parent, "tool_started", tool=name, process=record["process"])
         try:
             while proc.poll() is None:
-                if cancel is not None and cancel.is_set():
-                    raise RunCancelled("Cancelled by the user; partial evidence was preserved.")
+                check_execution(cancel)
                 if time.monotonic() > deadline:
                     raise TimeoutError(
                         f"{name} exceeded its {timeout:g}s limit. Partial evidence was preserved."
@@ -160,6 +292,11 @@ def run_tool(
             if proc.returncode != 0:
                 tail = log.read_text(errors="replace")[-2200:]
                 raise RuntimeError(f"{name} exited with status {proc.returncode}.\n{tail}")
+            check_execution(cancel)
+            record["status"] = "completed"
+        except BaseException as exc:
+            record.update(status="stopped", error=str(exc))
+            raise
         finally:
             if proc.poll() is None:
                 os.killpg(proc.pid, signal.SIGTERM)
@@ -168,4 +305,13 @@ def run_tool(
                 except subprocess.TimeoutExpired:
                     os.killpg(proc.pid, signal.SIGKILL)
                     proc.wait()
+            record.update(returncode=proc.returncode, finished_at=datetime.now(UTC).isoformat())
+            write_json(record_path, record)
+            event(
+                case.parent,
+                "tool_finished",
+                tool=name,
+                status=record["status"],
+                returncode=proc.returncode,
+            )
     return log

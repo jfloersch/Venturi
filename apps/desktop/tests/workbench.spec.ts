@@ -92,3 +92,38 @@ test("real geometry, boundary mapping, solver evidence, reload and portable expo
   expect(bytes.subarray(0, 2).toString()).toBe("PK");
   expect(errors).toEqual([]);
 });
+
+test("cancellation retains a report and retry creates a separate attempt", async ({
+  page,
+}) => {
+  await page.goto("/#token=venturi-e2e-session-only");
+  await expect(
+    page.getByText("worker connected", { exact: false }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Run pipe reference" }).click();
+  await expect(page.getByRole("button", { name: "Cancel run" })).toBeVisible();
+  const original = await page.locator(".run-heading code").textContent();
+  await page.getByRole("button", { name: "Cancel run" }).click();
+  await expect(page.locator(".status-pill")).toHaveText("cancelled", {
+    timeout: 30_000,
+  });
+  await expect(page.locator(".evidence-checks")).toContainText(
+    "Execution completed",
+  );
+  await page.getByRole("button", { name: "Retry as a new attempt" }).click();
+  await expect(page.locator(".run-heading code")).not.toHaveText(original!);
+  await expect(
+    page.getByText("The original evidence is retained.", { exact: false }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Cancel run" }).click();
+  await expect(page.locator(".status-pill")).toHaveText("cancelled", {
+    timeout: 30_000,
+  });
+  await page.getByText("Saved study and provenance", { exact: true }).click();
+  await expect(page.locator(".study-record")).toContainText("laminar-pipe/1");
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export complete run" }).click();
+  expect((await downloadPromise).suggestedFilename()).toMatch(
+    /^venturi-.*\.zip$/,
+  );
+});

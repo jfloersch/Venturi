@@ -1,4 +1,4 @@
-"""Deterministic evidence checks; provisional tolerances apply only to M0."""
+"""Deterministic evidence checks attached to the versioned pipe recipe."""
 
 import html
 import math
@@ -7,11 +7,12 @@ from pathlib import Path
 
 import numpy as np
 
-from .models import PipeSpec, file_hash, write_json
+from .models import CheckResult, PipeSpec, file_hash, write_json
+from .recipes import pipe_recipe
 
 
 def check(name: str, passed: bool, detail: str) -> dict:
-    return {"name": name, "status": "pass" if passed else "fail", "detail": detail}
+    return CheckResult(name=name, status="pass" if passed else "fail", detail=detail).model_dump()
 
 
 def read_series(path: Path) -> np.ndarray:
@@ -32,7 +33,36 @@ def read_series(path: Path) -> np.ndarray:
     return data
 
 
+def validate_field(path: Path, dimensions: str, components: int) -> None:
+    if not path.is_file():
+        raise ValueError(f"Missing final field: {path.name}")
+    text = path.read_text()
+    found = re.search(r"dimensions\s*\[([^\]]+)\]", text)
+    if not found or " ".join(found[1].split()) != dimensions:
+        raise ValueError(f"{path.name} field dimensions are missing or unexpected.")
+    if re.search(r"(?<!\w)[+-]?(?:nan|inf(?:inity)?)(?!\w)", text, re.I):
+        raise ValueError(f"Non-finite final field: {path.name}")
+    tokens = re.findall(r"(?<![\w.])[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?(?!\w)", text)
+    if any(not math.isfinite(float(value)) for value in tokens):
+        raise ValueError(f"Non-finite final field: {path.name}")
+    field = re.search(r"internalField\s+(uniform|nonuniform)\s+(.+?);", text, re.S)
+    if not field:
+        raise ValueError(f"Missing internal field: {path.name}")
+    if field[1] == "uniform":
+        values = [float(x) for x in field[2].strip().strip("()").split()]
+        count = components
+    else:
+        body = re.fullmatch(r"List<(scalar|vector)>\s+(\d+)\s*\((.*)\)\s*", field[2], re.S)
+        if not body or body[1] != ("scalar" if components == 1 else "vector"):
+            raise ValueError(f"Malformed internal field: {path.name}")
+        values = [float(x) for x in body[3].replace("(", " ").replace(")", " ").split()]
+        count = int(body[2]) * components
+    if len(values) != count or not values or not all(math.isfinite(x) for x in values):
+        raise ValueError(f"Incomplete or non-finite field: {path.name}")
+
+
 def reference_evidence(case: Path, spec: PipeSpec) -> dict:
+    criteria = pipe_recipe()["criteria"]
     series = {}
     for patch in ("inlet", "outlet"):
         for field in ("p", "phi"):
@@ -42,41 +72,51 @@ def reference_evidence(case: Path, spec: PipeSpec) -> dict:
     times = series["inlet_p"][:, 0]
     if any(not np.array_equal(values[:, 0], times) for values in series.values()):
         raise ValueError("Quantity histories do not refer to the same iterations.")
+    if times[0] not in {0, 1} or not np.array_equal(
+        times, np.arange(times[0], times[0] + len(times))
+    ):
+        raise ValueError("Quantity history contains missing or non-integral iterations.")
     # Both generated p fields and the solver output must declare kinematic pressure.
     final = case / f"{times[-1]:g}" / "p"
     if not final.exists() or not re.search(
         r"dimensions\s*\[0\s+2\s+-2\s+0\s+0\s+0\s+0\s*\]", final.read_text()
     ):
         raise ValueError("Pressure dimensions are missing or unexpected; refusing a Pa conversion.")
+    validate_field(final, "0 2 -2 0 0 0 0", 1)
+    validate_field(final.with_name("U"), "0 1 -1 0 0 0 0", 3)
     dp = (series["inlet_p"][:, 1] - series["outlet_p"][:, 1]) * spec.density_kg_m3
+    if not np.all(np.isfinite(dp)):
+        raise ValueError("Non-finite derived pressure history.")
     qi, qo = series["inlet_phi"][:, 1], series["outlet_phi"][:, 1]
     imbalance = np.abs(qi + qo) / np.maximum(np.maximum(np.abs(qi), np.abs(qo)), 1e-15)
     expected = spec.expected_pressure_drop_pa
     error = abs(dp[-1] - expected) / expected
-    stability = float(np.ptp(dp[-20:]) / max(abs(dp[-1]), 1e-15))
+    window = criteria["stability_window"]
+    stability = float(np.ptp(dp[-window:]) / max(abs(dp[-1]), 1e-15))
     log = (case.parent / "logs/foamRun.log").read_text()
-    residuals = re.findall(r"Solving for (\w+), Initial residual = ([\deE+.-]+)", log)
+    residuals = re.findall(r"Solving for (\w+), Initial residual = ([^,\s]+)", log)
     last_residuals = {}
     for field, value in residuals:
         last_residuals[field] = float(value)
     required_residuals = {"p", "Ux", "Uy", "Uz"}
     residual_pass = required_residuals <= last_residuals.keys() and all(
-        math.isfinite(last_residuals[x]) and last_residuals[x] <= 1e-5 for x in required_residuals
+        math.isfinite(last_residuals[x]) and 0 <= last_residuals[x] <= criteria["equation_residual"]
+        for x in required_residuals
     )
     checks = [
         check(
             "Analytical pressure drop",
-            error <= 0.05,
+            math.isfinite(error) and error <= criteria["pressure_relative_error"],
             f"{error:.3%} error; provisional pipe-fixture limit 5%",
         ),
         check(
             "Mass conservation",
-            float(imbalance[-1]) <= 0.001,
+            float(imbalance[-1]) <= criteria["mass_imbalance"],
             f"{imbalance[-1]:.4%} net flow imbalance; limit 0.1%",
         ),
         check(
             "Pressure-drop stability",
-            stability <= 0.001,
+            stability <= criteria["pressure_stability"],
             f"{stability:.4%} range over the last 20 iterations; limit 0.1%",
         ),
         check(
@@ -89,12 +129,12 @@ def reference_evidence(case: Path, spec: PipeSpec) -> dict:
             qi[-1] < 0 < qo[-1]
             and abs(-qi[-1] - math.pi * spec.radius_m**2 * spec.mean_velocity_m_s)
             / (math.pi * spec.radius_m**2 * spec.mean_velocity_m_s)
-            <= 1e-5,
+            <= criteria["prescribed_flow_relative_error"],
             "Outward-normal convention: inlet flux negative, outlet positive; compare to the declared flow.",
         ),
         check(
             "Solver completed",
-            "End" in log and times[-1] == spec.max_iterations,
+            bool(re.search(r"^End\s*$", log, re.M)) and times[-1] == spec.max_iterations,
             f"Recorded iteration {times[-1]:g} of {spec.max_iterations}",
         ),
     ]
@@ -106,6 +146,45 @@ def reference_evidence(case: Path, spec: PipeSpec) -> dict:
         "mass_imbalance": float(imbalance[-1]),
         "reynolds": spec.reynolds,
         "iterations": int(times[-1]),
+        "pressure_stability": stability,
+        "residuals": {
+            key: value if math.isfinite(value) else None for key, value in last_residuals.items()
+        },
+        "volume_flow_in_m3_s": float(-qi[-1]),
+        "volume_flow_out_m3_s": float(qo[-1]),
+        "criteria": criteria,
+        "quantities": {
+            "pressure_drop_pa": {
+                "units": "Pa",
+                "region": "inlet minus outlet",
+                "reduction": "difference of area means",
+                "field": "p",
+                "conversion": "multiply kinematic pressure by declared density",
+            },
+            "mass_imbalance": {
+                "units": "1",
+                "region": "inlet and outlet",
+                "reduction": "abs(Qin + Qout) / max(abs(Qin), abs(Qout), 1e-15 m3/s)",
+            },
+            "volume_flow_in_m3_s": {
+                "units": "m3/s",
+                "region": "inlet",
+                "field": "phi",
+                "reduction": "negative sum of outward flux",
+            },
+            "volume_flow_out_m3_s": {
+                "units": "m3/s",
+                "region": "outlet",
+                "field": "phi",
+                "reduction": "sum of outward flux",
+            },
+        },
+        "assessments": {
+            "numerical_verification": "assessed",
+            "experimental_validation": "not_assessed",
+            "mesh_independence": "not_assessed",
+            "independent_cfd_review": "pending",
+        },
         "checks": checks,
         "history": [
             {"iteration": int(t), "pressure_drop_pa": float(p), "mass_imbalance": float(m)}
@@ -134,7 +213,7 @@ def mesh_quality(log: Path) -> dict:
 
 def write_report(folder: Path, result: dict, spec: dict, environment: dict) -> None:
     """Portable HTML/JSON report with no network resources or hidden model calls."""
-    result["schema_version"] = 1
+    result["schema_version"] = "venturi.result.v1"
     result["environment"] = environment
     result["inputs"] = spec
     artifacts = {}
@@ -190,11 +269,17 @@ def write_report(folder: Path, result: dict, spec: dict, environment: dict) -> N
         if "history" in result
         else ""
     )
+    summary = ""
+    if "pressure_drop_pa" in result:
+        summary = f"<p><strong>Pressure drop: {result['pressure_drop_pa']:.8g} Pa</strong> · analytical {result['expected_pressure_drop_pa']:.8g} Pa · relative difference {result['relative_error']:.3%}</p>"
+    identity = ""
+    if "study_hash" in result:
+        identity = f'<p>Recipe <code>{esc(result["recipe"])}</code> · study <code>{esc(result["study_hash"])}</code></p><p><a href="study.json">Frozen study</a> · <a href="recipe.json">Recipe and criteria</a> · <a href="provenance.json">Provenance</a> · <a href="native-inputs.json">Native input hashes</a></p>'
     (
         folder / "report.html"
-    ).write_text(f"""<!doctype html><html lang="en"><meta charset="utf-8"><title>Venturi milestone 0 evidence</title>
+    ).write_text(f"""<!doctype html><html lang="en"><meta charset="utf-8"><title>Venturi reference evidence</title>
     <style>body{{font:16px system-ui;max-width:1000px;margin:50px auto;padding:24px;color:#18312e}}table{{border-collapse:collapse;width:100%}}td,th{{padding:12px;text-align:left;border-bottom:1px solid #ddd}}img{{max-width:100%}}code{{overflow-wrap:anywhere}}</style>
-    <h1>Venturi · milestone 0 evidence</h1><p>Run <code>{esc(folder.name)}</code> · {esc(result["status"])}</p>
+    <h1>Venturi · reference evidence</h1><p>Run <code>{esc(folder.name)}</code> · {esc(result["status"])}</p>
     <p>This is a compatibility benchmark with provisional criteria, not a qualified engineering result.</p>
-    {chart}<table><tr><th>Check</th><th>Outcome</th><th>Evidence</th></tr>{rows}</table>
+    {summary}{identity}{chart}<table><tr><th>Check</th><th>Outcome</th><th>Evidence</th></tr>{rows}</table>
     <h2>Limitations</h2><ul>{limitations}</ul><p>Complete metrics, inputs, environment, and artifact hashes: <a href="result.json">result.json</a>.</p></html>""")

@@ -93,7 +93,7 @@ def main() -> None:
                 webbrowser.open(url)
                 print("Browser workbench ready at http://127.0.0.1:1420", flush=True)
         print(
-            "Press Ctrl+C to stop this development session. Run artifacts will be retained.",
+            "Press Ctrl+C to stop the UI/API session. Active jobs continue; cancel them in the UI or with venturi cancel <id>.",
             flush=True,
         )
         while all(p.poll() is None for p in processes):

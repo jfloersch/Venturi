@@ -1050,3 +1050,18 @@ footer {
     display: none;
   }
 }
+
+.study-record {
+  margin: 16px 24px;
+  padding: 14px 18px;
+  border: 1px solid #d5dfdc;
+  border-radius: 8px;
+  font-size: 13px;
+}
+.study-record summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.study-record code {
+  overflow-wrap: anywhere;
+}

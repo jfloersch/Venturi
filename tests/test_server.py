@@ -1,9 +1,11 @@
-import threading
+import os
 
 import pytest
 from fastapi.testclient import TestClient
 
+from venturi.jobs import update_status
 from venturi.models import write_json
+from venturi.runtime import process_identity
 from venturi.server import create_app
 
 HEADERS = {"Authorization": "Bearer test-worker-token"}
@@ -49,15 +51,12 @@ def test_restart_marks_unfinished_work_interrupted_and_retains_results(tmp_path)
 
 def test_duplicate_request_never_launches_another_solver(tmp_path, monkeypatch):
     calls = []
-    gate = threading.Event()
 
-    def fake_reference(folder, cancel, progress):
+    def fake_launch(folder):
         calls.append(folder)
-        gate.wait(2)
-        return {"status": "passed", "checks": []}
+        return update_status(folder, status="running", process=process_identity(os.getpid()))
 
-    monkeypatch.setattr("venturi.server.reference", fake_reference)
-    monkeypatch.setattr("venturi.server.diagnostics", lambda: {"solver_ready": True})
+    monkeypatch.setattr("venturi.jobs.launch_attempt", fake_launch)
     payload = {"kind": "reference", "request_id": "same-request-123"}
     with TestClient(create_app(tmp_path, "test-worker-token")) as client:
         first = client.post("/v1/runs", json=payload, headers=HEADERS)
@@ -66,7 +65,6 @@ def test_duplicate_request_never_launches_another_solver(tmp_path, monkeypatch):
         assert first.json()["id"] == second.json()["id"]
         different = client.post("/v1/runs", json={**payload, "kind": "cad_mesh"}, headers=HEADERS)
         assert different.status_code == 409
-        gate.set()
     assert len(calls) == 1
 
 

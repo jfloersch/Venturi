@@ -1,4 +1,4 @@
-# Architecture decisions — milestone 0
+# Architecture decisions — milestone 1a
 
 ## Shared desktop, independent numerical worker
 
@@ -41,6 +41,41 @@ The first CAD mesh had four concave cells under `checkMesh -allGeometry`. It was
 
 Worker commands are allowlisted argument arrays, never user-interpolated shell commands. Only generated cases are executed. The worker records each request before execution, limits itself to one active job, rejects conflicting idempotency keys, and retains separate attempt directories. Cancel and timeout terminate the process group. Core scientific status never depends on model output.
 
-JSON manifests and relative artifact paths are authoritative in M0; SQLite indexing is deferred until the persistent study model is needed. The app reloads completed runs from disk. Worker restart labels unfinished attempts interrupted; automatic resume and reconciliation of externally orphaned processes are not implemented. Execution has per-tool deadlines and fixture cell-count bounds. Per-job RAM/disk enforcement is a later requirement; do not advertise a sandbox or a complete resource-governance system.
+Portable JSON remains authoritative. Each attempt owns an atomically replaced status, frozen request/study/recipe, chronological event files, command records and final artifact manifest. A Linux advisory lock serializes admission across API/CLI processes; idempotency keys are checked against persisted requests. A second lock gives one runner ownership of each attempt. SQLite remains unnecessary for this small serial store; it can later index these portable records.
+
+The API launches a detached runner and records its boot ID, PID and process start ticks before releasing a launch marker. Active jobs survive API/UI restart. Dead process identities cannot be confused with reused PIDs; reconciliation labels abandoned work interrupted and produces an exportable report. Terminal-report finalization can recover after a crash. Explicit retries retain their parent ID and reason and start from iteration zero. No automatic numerical recovery or solver checkpoint continuation is implemented.
+
+Every numerical tool runs in its own process group through a small Linux supervisor. Cancellation, timeout and runner death terminate that group, including descendants. The supervisor applies `RLIMIT_AS` to itself and tool children; the runner polls elapsed time and disk usage between stages and during tool execution. Disk use can overshoot by one polling interval and final diagnostic writes; the memory limit is per process virtual address space, not aggregate RAM or a cgroup. These controls are not a general sandbox. Solver environments contain only selected locale/path variables and OpenFOAM settings, not application/provider tokens.
+
+OpenFOAM rejects spaces and non-ASCII case paths. For those paths the adapter creates a private ASCII symlink under `/tmp` for each tool, preserving artifacts in the original directory. Normal completion removes the alias; an abrupt runner kill can leave an inert temporary alias. It is never a project identifier.
 
 No external AI, billing service, account, or network upload is involved in a run. Setup downloads dependencies. The worker binds to loopback, requires a token for project data/actions, and restricts browser origins. A future remote worker needs an authenticated transport; do not expose this development server directly to a network.
+
+
+## Study, recipe and evidence contracts
+
+`venturi.study.v1` references `laminar-pipe/1`, explicit SI inputs, the requested
+pressure quantity and resource policy. Validation rejects unknown fields,
+unsupported versions/physics, non-finite inputs, excessive cell budgets and the
+out-of-envelope Reynolds/length conditions. Defaults are validated before hashing
+so equivalent parsed studies have stable identities. The recipe owns fixed
+boundary assumptions and provisional acceptance thresholds; clients cannot
+supply relaxed thresholds.
+
+The compiler produces the existing Foundation-14 pipe mesh and solver dictionaries.
+The workflow records native input and mesh hashes before execution and checks that
+inputs remain unchanged. Evidence requires aligned contiguous quantity histories,
+final pressure/velocity fields with correct dimensions and finite values,
+prescribed flow, conservation, pressure stability, residuals and complete execution.
+Experimental validation, mesh independence and independent CFD review are explicitly
+unassessed/pending. A failed check cannot be overridden by an apparently converged solver.
+
+The final portable manifest covers the status, result, report, event journal,
+commands and native artifacts. Export refuses missing/changed/extra files and
+symlinks. Archive import rejects traversal, duplicate normalized entries, and
+oversized bundles. SHA-256 provides integrity, not an authenticity signature.
+Replay verifies an export, requires matching recorded OpenFOAM executable/library
+hashes, regenerates inputs for comparison, and only executes exported native
+inputs that match the deterministic compiler. It never executes arbitrary
+uploaded OpenFOAM dictionaries. Reproduction records its source manifest hash
+and relative pressure difference (limit 1e-6 for this same-runtime recipe).

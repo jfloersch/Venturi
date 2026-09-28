@@ -1,0 +1,26 @@
+{
+  "schema_version": "venturi.study.v1",
+  "name": "Laminar pipe reference",
+  "recipe": "laminar-pipe/1",
+  "physics": "steady-incompressible-newtonian-laminar",
+  "units": "SI",
+  "quantity": "area-mean-inlet-minus-outlet-static-pressure-pa",
+  "pipe": {
+    "schema_version": 1,
+    "radius_m": 0.005,
+    "length_m": 0.1,
+    "mean_velocity_m_s": 0.01,
+    "density_kg_m3": 1000.0,
+    "dynamic_viscosity_pa_s": 0.001,
+    "axial_cells": 60,
+    "core_cells": 12,
+    "radial_cells": 8,
+    "max_iterations": 500,
+    "timeout_seconds": 300
+  },
+  "resources": {
+    "wall_time_seconds": 900,
+    "memory_mb": 4096,
+    "disk_mb": 1024
+  }
+}

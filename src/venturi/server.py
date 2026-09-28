@@ -1,27 +1,23 @@
-"""Authenticated loopback worker for the milestone-0 desktop harness."""
+"""Authenticated loopback API over persistent, independent attempt processes."""
 
-import asyncio
 import hmac
-import json
 import os
 import secrets
 import shutil
 import threading
-import uuid
-from concurrent.futures import ThreadPoolExecutor
-from contextlib import asynccontextmanager
-from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
-from . import PROTOCOL_VERSION
+from . import PROTOCOL_VERSION, __version__
+from .artifacts import export_bundle, seal, verify
 from .geometry import fixture_selection, inspect_step, validate_selection
-from .models import BoundarySelection, RunRequest, file_hash, write_json
-from .runtime import RunCancelled, diagnostics
-from .workflows import mesh_spike, reference
+from .jobs import ACTIVE, RunManager, cancel_attempt, file_lock, read_json, reconcile
+from .models import BoundarySelection, RunRequest, StudySpec, file_hash, write_json
+from .recipes import pipe_recipe
+from .runtime import diagnostics
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -29,44 +25,22 @@ ROOT = Path(__file__).resolve().parents[2]
 def create_app(storage: Path, token: str) -> FastAPI:
     if not token:
         raise ValueError("A worker authentication token is required.")
-    storage = storage.resolve()
-    storage.mkdir(parents=True, exist_ok=True)
-    runs = storage / "runs"
-    runs.mkdir(exist_ok=True)
-    executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="venturi-run")
-    lock = threading.RLock()
-    cancellations: dict[str, threading.Event] = {}
-    states: dict[str, dict] = {}
-    requests: dict[str, tuple[dict, str]] = {}
-    for status_file in runs.glob("*/status.json"):
-        state = json.loads(status_file.read_text())
-        if state["status"] in {"queued", "running"}:
-            state.update(
-                status="interrupted",
-                stage="Worker restarted; inspect retained logs before starting another attempt.",
-            )
-            write_json(status_file, state)
-        states[state["id"]] = state
-        if "request" in state:
-            requests[state["request"]["request_id"]] = (state["request"], state["id"])
-
-    @asynccontextmanager
-    async def lifespan(_: FastAPI):
-        yield
-        for event in cancellations.values():
-            event.set()
-        await asyncio.to_thread(executor.shutdown, wait=True, cancel_futures=True)
-
-    app = FastAPI(title="Venturi worker", version="0.0.1", lifespan=lifespan)
+    manager = RunManager(storage)
+    storage = manager.storage
+    app = FastAPI(title="Venturi worker", version=__version__)
+    app.state.manager = manager
+    origins = [
+        "http://127.0.0.1:1420",
+        "http://localhost:1420",
+        "tauri://localhost",
+        "http://tauri.localhost",
+        "https://tauri.localhost",
+    ]
+    if origin := os.environ.get("VENTURI_UI_ORIGIN"):
+        origins.append(origin)
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[
-            "http://127.0.0.1:1420",
-            "http://localhost:1420",
-            "tauri://localhost",
-            "http://tauri.localhost",
-            "https://tauri.localhost",
-        ],
+        allow_origins=origins,
         allow_methods=["GET", "POST"],
         allow_headers=["Authorization", "Content-Type"],
     )
@@ -76,7 +50,6 @@ def create_app(storage: Path, token: str) -> FastAPI:
         if not hmac.compare_digest(supplied, f"Bearer {token}"):
             raise HTTPException(401, "Worker token is missing or incorrect.")
 
-    # Expensive CAD imports are serialized: OCCT maintains process-wide state.
     geometry_lock = threading.Lock()
     geometry_cache: dict[str, dict] = {}
 
@@ -98,41 +71,11 @@ def create_app(storage: Path, token: str) -> FastAPI:
                 geometry_cache[key] = value
             return geometry_cache[key]
 
-    def update(run_id: str, **values):
-        with lock:
-            states[run_id].update(values)
-            write_json(runs / run_id / "status.json", states[run_id])
-
-    def execute(run_id: str, request: RunRequest, selection: BoundarySelection | None):
-        folder = runs / run_id
-        event = cancellations[run_id]
+    def run_folder(run_id: str) -> Path:
         try:
-            if event.is_set():
-                raise RunCancelled("Cancelled before execution.")
-            update(run_id, status="running", stage="Preparing worker")
-
-            def progress(stage):
-                update(run_id, stage=stage)
-
-            if request.kind == "reference":
-                result = reference(folder, cancel=event, progress=progress)
-            else:
-                geometry = fixture()
-                result = mesh_spike(
-                    folder,
-                    geometry,
-                    selection,
-                    storage / "geometry" / geometry["geometry_hash"] / "source.step",
-                    event,
-                    progress,
-                )
-            update(run_id, status=result["status"], stage="Evidence ready", result=result)
-        except RunCancelled as e:
-            update(run_id, status="cancelled", stage=str(e))
-        except Exception as e:
-            update(run_id, status="failed", stage="Execution stopped", error=str(e))
-        finally:
-            update(run_id, finished_at=datetime.now(UTC).isoformat())
+            return manager.folder(run_id)
+        except (ValueError, KeyError) as exc:
+            raise HTTPException(404, "Run not found.") from exc
 
     @app.get("/v1/health")
     def health():
@@ -142,12 +85,22 @@ def create_app(storage: Path, token: str) -> FastAPI:
     def get_diagnostics():
         return diagnostics()
 
+    @app.get("/v1/studies/schema", dependencies=[Depends(auth)])
+    def study_schema():
+        return StudySpec.model_json_schema()
+
+    @app.get("/v1/studies/template", dependencies=[Depends(auth)])
+    def study_template():
+        return StudySpec().model_dump()
+
+    @app.get("/v1/recipes/laminar-pipe/1", dependencies=[Depends(auth)])
+    def recipe():
+        return pipe_recipe()
+
     @app.get("/v1/geometry", dependencies=[Depends(auth)])
     def get_geometry():
         g = fixture()
-        selection = json.loads(
-            (storage / "geometry" / g["geometry_hash"] / "selection.json").read_text()
-        )
+        selection = read_json(storage / "geometry" / g["geometry_hash"] / "selection.json")
         return {**g, "selection": selection}
 
     @app.post("/v1/selection", dependencies=[Depends(auth)])
@@ -155,8 +108,8 @@ def create_app(storage: Path, token: str) -> FastAPI:
         g = fixture()
         try:
             validate_selection(g, selection)
-        except ValueError as e:
-            raise HTTPException(422, str(e)) from e
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from exc
         with geometry_lock:
             write_json(
                 storage / "geometry" / g["geometry_hash"] / "selection.json", selection.model_dump()
@@ -165,74 +118,53 @@ def create_app(storage: Path, token: str) -> FastAPI:
 
     @app.get("/v1/runs", dependencies=[Depends(auth)])
     def list_runs():
-        with lock:
-            return sorted(
-                states.values(), key=lambda state: state.get("created_at", ""), reverse=True
-            )
+        return manager.list()
 
     @app.post("/v1/runs", dependencies=[Depends(auth)], status_code=202)
     def start_run(request: RunRequest):
-        with lock:
-            if request.request_id in requests:
-                previous, run_id = requests[request.request_id]
-                if previous != request.model_dump():
-                    raise HTTPException(409, "This request ID already belongs to different inputs.")
-                return states[run_id]
-            if any(s["status"] in {"queued", "running"} for s in states.values()):
+        cad = None
+        if request.kind == "cad_mesh" and not request.retry_of:
+            g = fixture()
+            if request.geometry_hash != g["geometry_hash"]:
                 raise HTTPException(
-                    409, "This worker already has an active run. Wait or cancel it."
+                    409, "Geometry changed; reload and confirm boundary selections."
                 )
-            if not diagnostics()["solver_ready"]:
-                raise HTTPException(
-                    503, "Simulation runtime is unavailable; check worker diagnostics."
+            with geometry_lock:
+                selection = BoundarySelection.model_validate(
+                    read_json(storage / "geometry" / g["geometry_hash"] / "selection.json")
                 )
-            selection = None
-            if request.kind == "cad_mesh":
-                g = fixture()
-                if request.geometry_hash != g["geometry_hash"]:
-                    raise HTTPException(
-                        409, "Geometry changed; reload and confirm boundary selections."
-                    )
-                with geometry_lock:
-                    selection = BoundarySelection.model_validate_json(
-                        (storage / "geometry" / g["geometry_hash"] / "selection.json").read_text()
-                    )
-                validate_selection(g, selection)
-            run_id = uuid.uuid4().hex
-            states[run_id] = {
-                "id": run_id,
-                "kind": request.kind,
-                "status": "queued",
-                "stage": "Queued",
-                "created_at": datetime.now(UTC).isoformat(),
-                "request": request.model_dump(),
+            validate_selection(g, selection)
+            cad = {
+                "geometry": g,
+                "selection": selection.model_dump(),
+                "source": storage / "geometry" / g["geometry_hash"] / "source.step",
             }
-            requests[request.request_id] = (request.model_dump(), run_id)
-            cancellations[run_id] = threading.Event()
-            update(run_id)
-            executor.submit(execute, run_id, request, selection)
-            return dict(states[run_id])
+        try:
+            return manager.submit(request, cad)
+        except KeyError as exc:
+            raise HTTPException(404, "Parent run not found.") from exc
+        except ValueError as exc:
+            raise HTTPException(409, str(exc)) from exc
 
     @app.get("/v1/runs/{run_id}", dependencies=[Depends(auth)])
     def get_run(run_id: str):
-        with lock:
-            if run_id not in states:
-                raise HTTPException(404, "Run not found.")
-            return dict(states[run_id])
+        return reconcile(run_folder(run_id))
+
+    @app.get("/v1/runs/{run_id}/events", dependencies=[Depends(auth)])
+    def get_events(run_id: str):
+        return [read_json(p) for p in sorted((run_folder(run_id) / "events").glob("*.json"))]
 
     @app.post("/v1/runs/{run_id}/cancel", dependencies=[Depends(auth)])
     def cancel_run(run_id: str):
-        with lock:
-            if run_id not in cancellations or states[run_id]["status"] not in {"queued", "running"}:
-                raise HTTPException(409, "This run is no longer active.")
-            cancellations[run_id].set()
-            return {"status": "cancellation_requested"}
+        try:
+            cancel_attempt(run_folder(run_id))
+        except ValueError as exc:
+            raise HTTPException(409, str(exc)) from exc
+        return {"status": "cancellation_requested"}
 
     @app.get("/v1/runs/{run_id}/files/{filename:path}", dependencies=[Depends(auth)])
     def get_file(run_id: str, filename: str):
-        if run_id not in states:
-            raise HTTPException(404, "Run not found.")
-        folder = runs / run_id
+        folder = run_folder(run_id)
         target = (folder / filename).resolve()
         if not target.is_relative_to(folder.resolve()) or not target.is_file():
             raise HTTPException(404, "Artifact not found.")
@@ -240,19 +172,28 @@ def create_app(storage: Path, token: str) -> FastAPI:
 
     @app.get("/v1/runs/{run_id}/export", dependencies=[Depends(auth)])
     def export_run(run_id: str):
-        with lock:
-            if run_id not in states:
-                raise HTTPException(404, "Run not found.")
-            if states[run_id]["status"] in {"queued", "running"}:
-                raise HTTPException(409, "Wait for the run to finish before exporting.")
-            exports = storage / "exports"
-            exports.mkdir(exist_ok=True)
-            archive = exports / f"{run_id}.zip"
-            if not archive.exists():
-                shutil.make_archive(
-                    str(archive.with_suffix("")), "zip", root_dir=runs, base_dir=run_id
-                )
-            return FileResponse(archive, filename=f"venturi-{run_id[:8]}.zip")
+        folder = run_folder(run_id)
+        if reconcile(folder)["status"] in ACTIVE:
+            raise HTTPException(409, "Wait for the run to finish before exporting.")
+        try:
+            with file_lock(folder / ".run.lock"):
+                # Explicit compatibility path for terminal M0 reports.
+                if not (folder / "manifest.json").exists():
+                    if (
+                        read_json(folder / "status.json").get("schema_version")
+                        == "venturi.attempt.v1"
+                    ):
+                        raise ValueError(
+                            "Run finalization is incomplete; no verified export is available."
+                        )
+                    seal(folder)
+                verify(folder)
+                archive = storage / "exports" / f"{run_id}.zip"
+                if not archive.exists():
+                    export_bundle(folder, archive)
+        except (OSError, ValueError) as exc:
+            raise HTTPException(409, str(exc)) from exc
+        return FileResponse(archive, filename=f"venturi-{run_id[:8]}.zip")
 
     return app
 

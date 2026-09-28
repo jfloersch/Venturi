@@ -37,12 +37,17 @@ export type Result = {
   relative_error?: number;
   mass_imbalance?: number;
   iterations?: number;
+  reynolds?: number;
   history?: {
     iteration: number;
     pressure_drop_pa: number;
     mass_imbalance: number;
   }[];
   limitations: string[];
+  recipe?: string;
+  study_hash?: string;
+  recipe_hash?: string;
+  inputs?: { name?: string; pipe?: Record<string, number> };
 };
 export type Run = {
   id: string;
@@ -52,4 +57,15 @@ export type Run = {
   created_at: string;
   error?: string;
   result?: Result;
+  study_hash?: string;
+  recipe_hash?: string;
+  retry_of?: string;
+  request?: {
+    kind: "reference" | "cad_mesh";
+    request_id: string;
+    geometry_hash?: string | null;
+    study?: { name?: string; pipe?: Record<string, number> } | null;
+    reason?: string;
+    retry_of?: string | null;
+  };
 };

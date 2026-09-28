@@ -28,7 +28,7 @@ import type {
   Run,
 } from "./types";
 
-const API = "http://127.0.0.1:8765";
+const API = import.meta.env.VITE_VENTURI_API || "http://127.0.0.1:8765";
 const protocol = "venturi.worker.v1";
 const active = (run?: Run | null) =>
   !!run && ["queued", "running"].includes(run.status);
@@ -94,7 +94,7 @@ function Plot({ run }: { run: Run }) {
           {expected.toFixed(2)}
         </text>
         <text x="40" y="168">
-          1
+          {history[0].iteration}
         </text>
         <text x="640" y="168">
           {history.at(-1)?.iteration}
@@ -134,6 +134,19 @@ export function App() {
   const run = runs.find((r) => r.id === runId) || runs[0];
   const hasActive = runs.some(active);
   const face = geometry?.faces.find((f) => f.id === selected);
+  const studyPipe =
+    tab === "evidence" && run?.kind === "reference"
+      ? run.request?.study?.pipe || run.result?.inputs?.pipe
+      : undefined;
+  const shownRadius = studyPipe?.radius_m ?? 0.005;
+  const shownLength = studyPipe?.length_m ?? 0.1;
+  const shownReynolds = studyPipe
+    ? (2 *
+        shownRadius *
+        (studyPipe.mean_velocity_m_s ?? 0.01) *
+        (studyPipe.density_kg_m3 ?? 1000)) /
+      (studyPipe.dynamic_viscosity_pa_s ?? 0.001)
+    : 100;
   const tokenRef = useRef(token);
   tokenRef.current = token;
 
@@ -291,6 +304,23 @@ export function App() {
     });
   }
 
+  async function retry() {
+    if (!run?.request) return;
+    await action(async () => {
+      const value: Run = await api("/runs", {
+        method: "POST",
+        body: JSON.stringify({
+          ...run.request,
+          request_id: crypto.randomUUID(),
+          retry_of: run.id,
+          reason: "Manual retry from the workbench",
+        }),
+      });
+      setRuns((old) => [value, ...old]);
+      setRunId(value.id);
+    });
+  }
+
   return (
     <div className="app">
       <aside className="sidebar">
@@ -309,7 +339,7 @@ export function App() {
           </div>
           <div>
             <strong>First principles</strong>
-            <span>Milestone 0 · compatibility</span>
+            <span>Milestone 1a · reference workflow</span>
           </div>
         </div>
         <nav aria-label="Workbench navigation">
@@ -376,7 +406,7 @@ export function App() {
             <PlugZap size={15} />
             Worker connection
           </button>
-          <small>VENTURI / DEVELOPMENT BUILD 0.0.1</small>
+          <small>VENTURI / DEVELOPMENT BUILD 0.1.0</small>
         </div>
       </aside>
       <main>
@@ -397,7 +427,7 @@ export function App() {
         <div className="page">
           <div className="page-title">
             <div>
-              <div className="eyebrow">COMPATIBILITY WORKBENCH / 001</div>
+              <div className="eyebrow">REFERENCE WORKBENCH / 001</div>
               <h1>
                 {tab === "geometry"
                   ? "Start with the fundamentals."
@@ -410,7 +440,7 @@ export function App() {
               </p>
             </div>
             <span className="milestone-badge">
-              M0 <span>PREVIEW</span>
+              M1a <span>PREVIEW</span>
             </span>
           </div>
           {error && (
@@ -480,19 +510,24 @@ export function App() {
                 <div>
                   <Box size={17} />
                   <span>
-                    Reference geometry<strong>Ø 10 × 100 mm pipe</strong>
+                    Reference geometry
+                    <strong>
+                      Ø {(shownRadius * 2000).toLocaleString()} ×{" "}
+                      {(shownLength * 1000).toLocaleString()} mm pipe
+                    </strong>
                   </span>
                 </div>
                 <div>
                   <Wind size={17} />
                   <span>
-                    Flow regime<strong>Laminar · Re 100</strong>
+                    Flow regime
+                    <strong>Laminar · Re {shownReynolds.toFixed(0)}</strong>
                   </span>
                 </div>
                 <div>
                   <ShieldCheck size={17} />
                   <span>
-                    Evidence level<strong>Compatibility benchmark</strong>
+                    Evidence level<strong>Provisional verification</strong>
                   </span>
                 </div>
               </div>
@@ -700,6 +735,43 @@ export function App() {
                       {run.error && (
                         <pre className="run-error">{run.error}</pre>
                       )}
+                      {!active(run) &&
+                        run.status !== "passed" &&
+                        run.request && (
+                          <button
+                            className="secondary"
+                            disabled={busy || hasActive}
+                            onClick={retry}
+                          >
+                            Retry as a new attempt
+                          </button>
+                        )}
+                      {run.retry_of && (
+                        <p>
+                          Retry of <code>{run.retry_of.slice(0, 12)}</code>. The
+                          original evidence is retained.
+                        </p>
+                      )}
+                      {run.study_hash && (
+                        <details className="study-record">
+                          <summary>Saved study and provenance</summary>
+                          <p>
+                            {run.result?.inputs?.name ||
+                              "Laminar pipe reference"}{" "}
+                            · {run.result?.recipe || "laminar-pipe/1"}
+                          </p>
+                          <p>
+                            Study <code>{run.study_hash}</code>
+                          </p>
+                          <p>
+                            Recipe <code>{run.recipe_hash}</code>
+                          </p>
+                          <p>
+                            The export includes frozen inputs, runtime versions,
+                            command records, logs, and an artifact manifest.
+                          </p>
+                        </details>
+                      )}
                       {run.result && (
                         <>
                           {run.result.pressure_drop_pa !== undefined && (
@@ -777,8 +849,8 @@ export function App() {
           )}
           <footer>
             <span>
-              Milestone 0 is a feasibility test. Results use provisional
-              benchmark criteria.
+              Reference results use provisional criteria. Independent CFD review
+              and platform qualification remain pending.
             </span>
             <span>Local by design. Inspectable by default.</span>
           </footer>

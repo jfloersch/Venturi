@@ -1,4 +1,4 @@
-# Testing Venturi milestone 0
+# Testing Venturi milestone 1a
 
 ## Quick manual run
 
@@ -29,11 +29,13 @@ npm run test:e2e
 npm run tauri build -- --no-bundle
 ```
 
-Playwright owns ports 1420 and 8765 during its test, starts a real worker with an isolated test token, and performs real OpenFOAM runs. Stop the development launcher first. Install its browser once with `npx playwright install chromium`; Linux CI uses `--with-deps`. Screenshots are saved under `artifacts/screenshots`. Traces for failures are under `apps/desktop/test-results`.
+Playwright owns ports 1421 and 8766, starts a real worker with an isolated test token, and performs real OpenFOAM runs. It can run alongside a development session on 1420/8765. Install its browser once with `npx playwright install chromium`; Linux CI uses `--with-deps`. Screenshots are saved under `artifacts/screenshots`. Traces for failures are under `apps/desktop/test-results`.
 
 ## Reproduce an exported numerical case
 
-Use the exact pinned runtime described in the exported `result.json`. Extract the ZIP into a new location. The native case contains its generated input dictionaries, final fields, and mesh. Run `foamRun -case <case>` in a Foundation-14 environment to recompute from time 0; compare quantities within the documented tolerances. No AI or Venturi service is required. The report records all input/artifact hashes; do not claim byte-identical floating point output across CPU architectures.
+Use `venturi verify <archive.zip>` and `venturi reproduce <archive.zip> --output <new-directory>` for the checked workflow. Reproduction requires the original runtime fingerprint and accepts only native inputs matching the versioned compiler. It recomputes from time zero, produces a fresh evidence report and compares pressure within the recipe's 1e-6 reproduction tolerance. The original is unchanged.
+
+For independent manual inspection, the native `case` contains generated dictionaries, initial/final fields and mesh. In the recorded Foundation-14 environment, `foamRun -case <case>` starts at zero without an AI or Venturi service. Work on a copy because rerunning changes evidence and invalidates the existing manifest. OpenFOAM itself requires a path without spaces/non-ASCII characters; the Venturi adapter handles this for its own runs. Do not claim byte-identical floating point output across CPU architectures.
 
 ## Windows / WSL
 
@@ -55,7 +57,7 @@ The bootstrap script refuses ARM64 until that package set is qualified. `worker/
 
 Record OS version, CPU architecture, graphics driver, app/runtime versions, and test date. For each platform record build, launch, visible 3D render, face picking, file selection/export, cancellation, reopen, runtime installation, resource use, and the two numerical/CAD checks. Missing hardware checks stay **not tested**. Unsigned development installers are not a public release.
 
-The worker is a trusted local development tool. It has time/cell limits, but no complete memory/disk sandbox, crash-resume system, or arbitrary uploaded-case executor. Keep the test fixture scope explicit.
+The worker is a trusted local development tool. It has time/cell limits, per-tool address-space limits, polled disk budgets, process-death reconciliation and explicit retries. It has no complete memory/disk sandbox, automatic solver resume, or arbitrary uploaded-case executor. Keep the test fixture scope explicit.
 
 ## Optional ParaView batch check
 
@@ -67,3 +69,24 @@ python3 scripts/bootstrap_paraview.py
 ```
 
 Inspect `velocity-slice.png` and `render.json`. The script rejects empty slices, uses a fixed 0–0.02 m/s speed range, labels the figure, and selects software rendering on WSL. A PNG being written is not by itself a visual pass: inspect that the actual colored velocity field appears.
+
+
+## Milestone 1a acceptance cases
+
+The full Python suite includes actual CLI study submission, duplicate request
+reconnection, ZIP export, native replay in a Unicode/space-containing directory,
+refusal of modified dictionaries even after rehashing, and runtime mismatch.
+It also exercises an actual HTTP API process being killed/restarted during a job,
+runner SIGKILL, descendant cleanup, cancellation, explicit retry lineage,
+concurrent admission, total deadline, tool memory/disk limits, invalid schemas,
+missing/non-finite fields and histories, tampered studies and manifest corruption.
+Control-path failure tests use deliberately sleeping/failing executable fixtures;
+they do not substitute for the real solver numerical acceptance tests.
+
+Browser acceptance covers visible CAD/picking, invalid selections, real meshing
+and solving, reload, provenance display, cancellation, retry and ZIP download.
+
+Manual lifecycle check: start `venturi run fixtures/pipe-study.json --detach`,
+stop/restart only the API, and confirm `venturi status` and the workbench reconnect
+to the same run. Stopping the development launcher now leaves active jobs running;
+use the explicit cancel action when you intend to stop a simulation.
