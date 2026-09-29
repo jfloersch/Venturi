@@ -1,6 +1,51 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
 import { readFileSync } from "node:fs";
 
+test("the same saved annotation restores its camera after every orbit", async ({
+  page,
+}) => {
+  await page.goto("/#token=venturi-e2e-session-only");
+  await expect(
+    page.getByText("worker connected", { exact: false }),
+  ).toBeVisible();
+  const viewer = page.getByTestId("geometry-viewer");
+  await expect
+    .poll(async () => Number(await viewer.getAttribute("data-rendered-pixels")))
+    .toBeGreaterThan(1000);
+  await page.getByLabel("Reference label").fill("Repeatable camera");
+  await page
+    .getByLabel("Annotation", { exact: true })
+    .fill("Restore this view repeatedly.");
+  await page
+    .getByRole("button", { name: "Save annotation", exact: true })
+    .click();
+  const note = page.getByRole("button", {
+    name: "Repeatable camera",
+    exact: true,
+  });
+  await note.click();
+  const canvas = viewer.locator("canvas");
+  const savedView = await canvas.screenshot();
+  for (let orbit = 0; orbit < 2; orbit++) {
+    const box = (await canvas.boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(
+      box.x + box.width / 2 + 120,
+      box.y + box.height / 2 + 35,
+      { steps: 15 },
+    );
+    await page.mouse.up();
+    await expect
+      .poll(async () => (await canvas.screenshot()).equals(savedView))
+      .toBe(false);
+    await note.click();
+    await expect
+      .poll(async () => (await canvas.screenshot()).equals(savedView))
+      .toBe(true);
+  }
+});
+
 const duplicateRunErrors = new WeakMap<Page, string[]>();
 test.beforeEach(({ page }) => {
   const errors: string[] = [];

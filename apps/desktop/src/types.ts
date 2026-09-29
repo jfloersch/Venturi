@@ -67,9 +67,11 @@ export type Result = {
   >;
 };
 export type InternalStudy = {
-  schema_version: "venturi.internal-study.v1";
+  schema_version: "venturi.internal-study.v1" | "venturi.rans-study.v1";
   name: string;
-  recipe: "laminar-internal/1";
+  recipe: "laminar-internal/1" | "sst-straight-duct/1";
+  turbulence_intensity?: number;
+  turbulence_length_scale_m?: number;
   selection: Geometry["selection"];
   flow_rate_m3_s: number;
   density_kg_m3: number;

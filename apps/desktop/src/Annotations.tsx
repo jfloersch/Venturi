@@ -156,7 +156,8 @@ export function Annotations({
               className="secondary"
               onClick={() => {
                 onSelect(n.entity_id);
-                onRestore(n.camera);
+                // Each click is a new restore request, even for the same note.
+                onRestore({ ...n.camera });
               }}
             >
               {n.label}

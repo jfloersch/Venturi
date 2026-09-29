@@ -1,0 +1,10 @@
+[Unit]
+Description=Hourly Venturi output retention cleanup
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=1h
+Persistent=true
+
+[Install]
+WantedBy=timers.target

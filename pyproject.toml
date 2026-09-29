@@ -4,8 +4,9 @@ build-backend = "hatchling.build"
 
 [project]
 name = "venturi-workbench"
-version = "0.3.0"
-description = "Venturi's local CFD compatibility workbench"
+version = "0.5.0"
+description = "Venturi local CFD workbench and optional Managed AI"
+license = "GPL-3.0-only"
 requires-python = ">=3.11,<3.14"
 dependencies = [
   "pydantic>=2.11,<3",
@@ -13,17 +14,24 @@ dependencies = [
   "uvicorn>=0.34,<1",
   "numpy>=2.2,<3",
   "matplotlib>=3.10,<4",
+  "httpx>=0.28,<1",
+  "keyring>=25,<26",
 ]
 
 [project.optional-dependencies]
-cad = ["cadquery-ocp==7.8.1.1.post1"]
+cad = ["cadquery-ocp==7.8.1.1.post1", "vtk>=9.3,<10"]
 dev = ["pytest>=8.3,<10", "httpx>=0.28,<1", "ruff>=0.11,<1"]
 
 [project.scripts]
 venturi = "venturi.cli:main"
+venturi-gateway = "venturi.gateway:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/venturi"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"fixtures" = "venturi/data/fixtures"
+"worker" = "venturi/data/worker"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

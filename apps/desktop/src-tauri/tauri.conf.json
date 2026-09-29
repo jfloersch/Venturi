@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Venturi",
-  "version": "0.3.0",
+  "version": "0.5.0",
   "identifier": "ai.venturi.workbench",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -25,7 +25,12 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["deb", "appimage", "nsis", "dmg"],
+    "targets": [
+      "deb",
+      "appimage",
+      "nsis",
+      "dmg"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

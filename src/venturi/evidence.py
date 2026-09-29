@@ -68,8 +68,9 @@ def validate_field(
     if not path.is_file():
         raise ValueError(f"Missing final field: {path.name}")
     text = path.read_text()
-    found = re.search(r"dimensions\s*\[([^\]]+)\]", text)
-    if not found or " ".join(found[1].split()) != dimensions:
+    found = re.search(r"dimensions\s*\[([^\]]*)\]", text)
+    actual_dimensions = (" ".join(found[1].split()) or "0 0 0 0 0 0 0") if found else None
+    if actual_dimensions != dimensions:
         raise ValueError(f"{path.name} field dimensions are missing or unexpected.")
     if re.search(r"(?<!\w)[+-]?(?:nan|inf(?:inity)?)(?!\w)", text, re.I):
         raise ValueError(f"Non-finite final field: {path.name}")

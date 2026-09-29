@@ -34,13 +34,13 @@ pending.** This is development acceptance, not release or CFD qualification.
 |---|---|
 | Full Python suite | **144 passed**, including 19 actual-runtime integration tests; 623.70 seconds |
 | New persistence/inspection coverage | 14 workspace/API tests passed |
-| Browser suite | **5 scenarios passed** in one run; final save/input-lock regression rerun passed after final form changes |
+| Browser suite | **6 scenarios passed** together on the final code, including repeated annotation camera restoration |
 | TypeScript and Vite | Passed |
 | Native Linux Tauri release, no bundle | Passed |
 | Ruff check/format, Prettier, Rust format | Passed |
 | Browser-created manifold archive | 180 files verified; frozen question, source and edge annotation present |
 | Browser archive replay | Passed; **zero relative difference** in pressure and both outlet flows |
-| Native interactive smoke | Not run: an existing worker occupied required port 8765 and was left running |
+| Native Linux desktop workflow | Passed on September 28: import, annotations, save/reopen, mesh approval, real solve, case inspection, downloads, cancellation and retry |
 | Remote CI / clean installation | Not rerun in this session |
 
 The browser manifold produced **0.04249171460614 Pa**, with outlet shares
@@ -75,11 +75,49 @@ under `artifacts/milestone-2/`; the JSON records the corresponding browser worke
 store under `artifacts/e2e/`. The [pilot guide](milestone-2.md) and
 [testing instructions](testing.md) describe repetition.
 
+## Native follow-up — September 28
+
+The release executable imported the manifold through its native file picker and
+rendered it on WSLg. The complete interactive workflow then ran on an isolated
+Linux Xvfb display, using AT-SPI and keyboard/mouse input. This avoids WSLg input
+injection limitations; it does not qualify a native Windows executable.
+
+The named study, question, material source, boundary assignments and edge note
+survived restarting both the desktop and worker. An edited draft disabled mesh
+approval, including after closing/reopening and selecting the mesh again.
+Reopening the saved study restored approval. Restarting the desktop and API
+during execution preserved the same attempt and process without duplicate work.
+The solve passed all 20 checks with the same 0.04249171460614 Pa pressure loss and
+outlet flows as the browser result.
+
+The native case viewer displayed velocity/pressure boundary entries and CAD
+mapping; comparison with the mesh attempt reported identical study files. The
+metrics download matched the worker file. A native save dialog exported a ZIP
+with spaces and Unicode in its filename; all 180 manifest files verified, and
+replay in a separate Unicode path matched pressure and both outlet flows exactly.
+Two native cancellation actions retained reports, and retry recorded a distinct
+attempt linked to the original.
+
+This testing found a camera-restoration defect: clicking the same note again
+reused the previous restore request, and orbiting left a different near/far
+clipping range. Each click now issues a fresh request and recalculates clipping
+for the restored camera. The new browser regression failed before correction and
+checks two consecutive orbit/restore cycles against the saved rendered image.
+The rebuilt native executable also passed two cycles with **zero differing
+pixels** in the restored viewport. All six browser scenarios passed together
+after the correction; TypeScript/Vite, the native release build and formatting
+checks passed. The unchanged Python worker retains its 144-test acceptance.
+
+Local screenshots, native logs, restart records, exports, replay and regression
+logs are retained under `artifacts/milestone-2-native-20260928/`. The test-display
+setup initially lacked a keyboard compiler; resolving the isolated harness
+dependencies required no system installation. No numerical criterion changed.
+
 ## Remaining gates
 
 Observe a target user completing the supported study without case-file editing
-and record hands-on time and interventions. Native interactive alpha testing,
-Windows/macOS/ARM qualification, independent CFD review, broader customer CAD
-and experimental validation remain open. Packaging and self-service installation
+and record hands-on time and interventions. Windows/macOS/ARM qualification,
+independent CFD review, broader customer CAD and experimental validation remain
+open. Packaging and self-service installation
 are milestone 4 work. Restart an already-running older worker before using the
 new desktop endpoints; restarting the API does not cancel independent attempts.

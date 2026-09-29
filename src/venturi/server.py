@@ -9,17 +9,20 @@ import threading
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from starlette.concurrency import run_in_threadpool
 
 from . import PROTOCOL_VERSION, __version__
 from .artifacts import export_bundle, seal, verify
 from .geometry import fixture_selection, import_geometry, inspect_step, validate_selection
+from .installation import data_root
 from .jobs import ACTIVE, RunManager, cancel_attempt, file_lock, read_json, reconcile
 from .models import (
     BoundarySelection,
     InternalFlowStudy,
+    RANSFlowStudy,
     RunRequest,
     StudySpec,
     file_hash,
@@ -41,7 +44,7 @@ from .workspace import (
     study_record,
 )
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = data_root()
 
 
 def create_app(storage: Path, token: str) -> FastAPI:
@@ -51,6 +54,17 @@ def create_app(storage: Path, token: str) -> FastAPI:
     storage = manager.storage
     app = FastAPI(title="Venturi worker", version=__version__)
     app.state.manager = manager
+    from .support import register as register_support
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_error(request: Request, exc: RequestValidationError):
+        # Validation diagnostics omit submitted values, including credentials in an
+        # otherwise malformed connection object. Field paths still identify the error.
+        return JSONResponse(
+            status_code=422,
+            content={"detail": [{k: e[k] for k in ("loc", "msg", "type")} for e in exc.errors()]},
+        )
+
     origins = [
         "http://127.0.0.1:1420",
         "http://localhost:1420",
@@ -71,6 +85,8 @@ def create_app(storage: Path, token: str) -> FastAPI:
         supplied = request.headers.get("Authorization", "")
         if not hmac.compare_digest(supplied, f"Bearer {token}"):
             raise HTTPException(401, "Worker token is missing or incorrect.")
+
+    register_support(app, storage, auth)
 
     geometry_lock = threading.Lock()
     geometry_cache: dict[str, dict] = {}
@@ -120,7 +136,7 @@ def create_app(storage: Path, token: str) -> FastAPI:
         return {"studies": studies, "active_id": active.get("id") if active else None}
 
     @app.post("/v1/studies/plan", dependencies=[Depends(auth)])
-    def study_plan(study: InternalFlowStudy):
+    def study_plan(study: RANSFlowStudy | InternalFlowStudy):
         return workspace_call(lambda: plan_study(storage, study))
 
     @app.post("/v1/studies", dependencies=[Depends(auth)])
@@ -152,6 +168,10 @@ def create_app(storage: Path, token: str) -> FastAPI:
     @app.post("/v1/annotations", dependencies=[Depends(auth)])
     def set_annotations(request: AnnotationSave):
         return workspace_call(lambda: save_notes(storage, request))
+
+    @app.get("/v1/session", dependencies=[Depends(auth)])
+    def session():
+        return {"protocol_version": PROTOCOL_VERSION, "app_version": __version__, "status": "ready"}
 
     @app.get("/v1/health")
     def health():
@@ -333,6 +353,9 @@ def create_app(storage: Path, token: str) -> FastAPI:
             raise HTTPException(409, str(exc)) from exc
         return FileResponse(archive, filename=f"venturi-{run_id[:8]}.zip")
 
+    from .assistance_api import register
+
+    register(app, storage, manager, auth)
     return app
 
 

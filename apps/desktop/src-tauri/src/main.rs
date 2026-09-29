@@ -1,18 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-#[derive(serde::Serialize)]
-struct Connection {
-    url: String,
-    token: String,
-}
-
-#[tauri::command]
-fn worker_connection() -> Connection {
-    Connection {
-        url: "http://127.0.0.1:8765".into(),
-        token: std::env::var("VENTURI_API_TOKEN").unwrap_or_default(),
-    }
-}
+mod setup;
 
 #[tauri::command]
 fn client_diagnostic(message: String) {
@@ -46,10 +34,16 @@ fn main() {
         }
     }
     tauri::Builder::default()
+        .manage(setup::SetupState::default())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .invoke_handler(tauri::generate_handler![
-            worker_connection,
+            setup::worker_connection,
+            setup::setup_worker,
+            setup::setup_status,
+            setup::install_wsl,
+            setup::install_prerequisites,
+            setup::open_checkout,
             client_diagnostic
         ])
         .run(tauri::generate_context!())

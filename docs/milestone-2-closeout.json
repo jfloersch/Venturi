@@ -1,8 +1,8 @@
 {
   "schema_version": "venturi.milestone-2-evidence.v1",
   "version": "0.3.0",
-  "date": "2026-09-27",
-  "decision": "Guided desktop alpha implementation verified on Linux/WSL; observed target-user pilot exit gate remains pending.",
+  "date": "2026-09-28",
+  "decision": "Guided desktop alpha verified with automated browser, worker and native Linux desktop acceptance; observed target-user pilot exit gate remains pending.",
   "python": {
     "command": "VENTURI_INTEGRATION=1 uv run pytest -q --basetemp=artifacts/milestone-2/python --junitxml=artifacts/milestone-2/python-results.xml",
     "name": "pytest",
@@ -18,10 +18,10 @@
     "junit_sha256": "c788488623ec9ccf2b6ddb6dd4d97f12902900ab6accab804e5351d8f343f1ab"
   },
   "browser": {
-    "scenarios_passed": 5,
-    "elapsed_seconds_rounded": 174,
-    "storage": "artifacts/e2e/session-1790566317955",
-    "final_regression": "The save/submission input lock and stale in-flight review/budget/outage scenario were rerun after final form changes.",
+    "scenarios_passed": 6,
+    "elapsed_seconds_rounded": 270,
+    "storage": "artifacts/e2e/session-1790605394487",
+    "final_regression": "All six scenarios passed together on final source, including pixel-identical repeated annotation camera restoration after orbit.",
     "mocks": "No solver outcomes mocked; browser tests delay responses, interrupt polling and blank the framebuffer to exercise failure guards."
   },
   "builds": {
@@ -30,12 +30,12 @@
     "rust_format": "passed",
     "python_lint_and_format": "passed",
     "prettier": "passed",
-    "native_ui_smoke": "not run: an existing worker occupies required port 8765; it was left running",
+    "native_ui_smoke": "passed: WSLg import/render; complete Linux desktop workflow on isolated Xvfb display",
     "remote_ci": "not run",
-    "linux_binary_sha256": "02b7da0f6ede166e0de36590316fa7d17104747ea68961992ddc7885c38fb403"
+    "linux_binary_sha256": "c8669fec8b76b9bd1e2e3b3653c8d215b9ae39bc0cfdad80a61a6d9affb06419"
   },
   "manifold": {
-    "run_id": "904f6f39143445e583b4b4568d9c0b61",
+    "run_id": "6da9085d498445efaf83ae5e2616519d",
     "status": "passed",
     "pressure_drop_pa": 0.04249171460614,
     "outlets": {
@@ -165,7 +165,7 @@
     ],
     "desktop_context": {
       "study": {
-        "id": "7dfaaf325b1b45c39660a9d84c2e1105",
+        "id": "09beb9703c874a238373bf9e60f114ff",
         "study": {
           "schema_version": "venturi.internal-study.v1",
           "name": "manifold.step",
@@ -206,7 +206,7 @@
         "profile": "guided",
         "schema_version": "venturi.desktop-study.v1",
         "revision": 2,
-        "updated_at": "2026-09-28T03:33:07.950427+00:00",
+        "updated_at": "2026-09-28T14:24:51.245681+00:00",
         "study_hash": "60d364e500e43f25fb5ec3a8b62dc0c0540c0b3e247f3cb611b52b8d4f61065e"
       },
       "annotations": {
@@ -214,7 +214,7 @@
         "revision": 1,
         "annotations": [
           {
-            "id": "aa1c04f1-dba3-4b54-82e2-4db1dbe9b32f",
+            "id": "567789f1-c3ed-4e92-b3ac-cfd1223bf724",
             "entity_id": "edge_e5304627effcc684",
             "label": "Supply rim",
             "text": "Check the port mapping at this edge.",
@@ -261,7 +261,7 @@
     }
   },
   "resource_stop": {
-    "run_id": "b3189ab770f24e4ba5c29b2354028ade",
+    "run_id": "019511e9e331440bbe78a52ede36a8f8",
     "status": "failed",
     "error": "TimeoutError: Attempt exceeded its total wall-time limit.",
     "resources": {
@@ -384,14 +384,15 @@
         "detail": "Source STEP, study and recipe match the executed inputs."
       }
     ],
-    "verified": true
+    "verified": true,
+    "evidence_root": "artifacts/milestone-2-native-20260928/browser-final-replay"
   },
   "artifacts": {
     "python-results.xml": "c788488623ec9ccf2b6ddb6dd4d97f12902900ab6accab804e5351d8f343f1ab",
-    "browser-flow.png": "87727b6575269cc58558d24b7e895ae4acb2821ba5a6b51e43dac81136d2d73a",
-    "browser-mesh.png": "c02d174a35b899e431f40b73900799c27451757c935a0c1f4040bf0bfb4be05d",
-    "browser-manifold.zip": "a8493da865ca4290e72f883deeac0d1ff1a40ee4c48c5c5c2f2b85b109c027b4",
-    "browser-import.png": "76c2df582864a307aadade1446bcba9a733fc816c6f5fa1965edec75b4fc7d1d"
+    "browser-flow.png": "078b7457a20d3d378543b749c021905720ca898a3f94d30025bd5c12ff0814f0",
+    "browser-mesh.png": "afb1a27894a18c298ed947ba964fcf82bed175f02a18c5938833b1b65a6c26b1",
+    "browser-manifold.zip": "c43ca13fe16be18cf667895b1d64d303d1e834655e57aa76bf2fee70c4d74501",
+    "browser-import.png": "b61b04a58ef7b70676f9f6cbadf78a07661d0dccd02472cbc51c4f3942a7ff1e"
   },
   "source_hashes": {
     "src/venturi/process.py": "d25aabb80cbaeab8d23324bd3704260d7481a62153713e7ac27011e2f421b136",
@@ -417,9 +418,9 @@
     "apps/desktop/src/vite-env.d.ts": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5",
     "apps/desktop/src/CaseViewer.tsx": "8099ae634ac1094a5dc5f8a4d9704487cb66faf4c93d8301db091db96375c7c2",
     "apps/desktop/src/FlowSetup.tsx": "3c5cf83e8a958cc591e2c3a06f5ae4ec1510bd87fbc9aa7562d4ebf764f022ad",
-    "apps/desktop/src/Viewer.tsx": "b9b2000b115495096d32b1db533999483903ce6747588aa52a4c44cf9b3bb11a",
+    "apps/desktop/src/Viewer.tsx": "a2eb0da8f0e88a7d4d353a880cab7be34056a06621580eb40c7ab25d44add538",
     "apps/desktop/src/main.tsx": "34648b89b5f1de8956750576f7d3ab8ebaa1f54258c1304a4bda5a840248f939",
-    "apps/desktop/src/Annotations.tsx": "9e480636f3063a9e1ad3645a24f5ec9c5a2352979bccaff1838bdfca1beb0971",
+    "apps/desktop/src/Annotations.tsx": "25ade883324606fa48c9af3f7272af74473415528de0f347005e96ab9e894841",
     "tests/test_jobs.py": "33ff0af2a90fc3f8784bd30aad2ad0a5a15916934d284c07fc1840eddb76235c",
     "tests/test_integration.py": "07013885a376b5448f48cb75886195678d14e490aa6124615da06d5da2423646",
     "tests/test_geometry.py": "7bf015b3aa0cfb10e840ce204636c3374a5ceecd87d7f99fcd06ec013dd54129",
@@ -432,7 +433,7 @@
     "tests/test_studies.py": "d38e7ffd87b0c1d68e69d5aa474aec7d4c3dd37fb53567a66ef42789fbdedadd",
     "tests/test_server.py": "1e5562a5e1023fe96371b818375053ade9455519afeab16314a5d2cc8bc3dce0",
     "tests/test_evidence.py": "d5842c734c5a01c4fad36b5e325ca6dd4931b92afe2fa6783c952906952a325d",
-    "apps/desktop/tests/workbench.spec.ts": "79ae0dd248873fd740f807cfa9e22d8e86681114bbfd40ea9da71ecb890ce5a7",
+    "apps/desktop/tests/workbench.spec.ts": "f0973e8cbb5b3d6130c819e4166f906e9422031571bf0f780baf40d14dfb0992",
     "apps/desktop/playwright.config.ts": "af83fbd4e1c871abe04566f7f6a2b403a98f25d4de30d89aab1a0f812481336f",
     "apps/desktop/package.json": "87d256175fff4de4b4b461cd921b31caf79f9549931542b77a4dd5aa99eca969",
     "apps/desktop/package-lock.json": "86083c721bf7e6b14c80704157680cb41885c7aefeea25e7bab31d06b295863d",
@@ -444,8 +445,168 @@
   "test_setup_note": "The first full-suite invocation could not create pytest basetemp because its parent was missing. Creating artifacts/milestone-2 corrected the harness invocation; the final 144-test run passed.",
   "remaining_gates": [
     "Observed target-user completion without case-file editing",
-    "Native interactive alpha smoke; Windows/macOS and ARM execution qualification",
+    "Windows/macOS and ARM execution qualification",
     "Independent CFD review and broader customer-CAD/experimental validation",
     "Release packaging and self-service installation (milestone 4)"
-  ]
+  ],
+  "native_followup": {
+    "date": "2026-09-28",
+    "source_base_commit": "76490d06708c48540b10544a44316c008aeecd9f",
+    "platform": {
+      "system": "Linux",
+      "release": "6.18.33.2-microsoft-standard-WSL2",
+      "machine": "x86_64",
+      "ui": "Tauri release / WebKitGTK / software rendering",
+      "automation": "AT-SPI plus X11 keyboard/mouse; isolated Xvfb display after WSLg import/render"
+    },
+    "evidence_root": "artifacts/milestone-2-native-20260928",
+    "checks": {
+      "native_file_picker_import": "passed (WSLg)",
+      "saved_study_and_annotation_after_desktop_and_api_restart": "passed",
+      "edited_draft_blocks_approval_after_native_reopen": "passed",
+      "reopening_saved_inputs_restores_approval": "passed",
+      "native_case_velocity_pressure_mapping_and_identical_study_diff": "passed",
+      "native_metrics_download_matches_worker": "passed",
+      "native_unicode_archive_export_and_manifest_verification": "passed (180 files)",
+      "repeated_annotation_camera_restoration": "passed after correction; exact pixels in two cycles",
+      "cancellation_reports_and_retry_lineage": "passed"
+    },
+    "mesh_run_id": "1aa5f3a28c24437e849712924fee2a7a",
+    "flow_run_id": "dd7d38a2d07d4bd2964a6cc3307d51d2",
+    "study_id": "05be5015fda343bdb62eb86d4edf1f05",
+    "study_revision": 2,
+    "pressure_drop_pa": 0.04249171460614,
+    "outlets": {
+      "outlet_1": {
+        "face_ids": [
+          "face_cec5d59a563ac5cd"
+        ],
+        "volume_flow_m3_s": 7.853847893508e-08,
+        "flow_fraction": 0.4999914858138055,
+        "pressure_drop_pa": 0.04249171460614,
+        "backflow_fraction": 0.0
+      },
+      "outlet_2": {
+        "face_ids": [
+          "face_8e8cabc457e7438c"
+        ],
+        "volume_flow_m3_s": 7.854115374556e-08,
+        "flow_fraction": 0.5000085141861944,
+        "pressure_drop_pa": 0.04249171460614,
+        "backflow_fraction": 0.0
+      }
+    },
+    "numerical_checks_passed": 20,
+    "restart_during_execution": {
+      "before": {
+        "id": "dd7d38a2d07d4bd2964a6cc3307d51d2",
+        "status": "running",
+        "stage": "Preparing attempt",
+        "process": {
+          "pid": 16932,
+          "start_ticks": "212871",
+          "boot_id": "68d0e552-c69f-48ad-abc6-4a99419e915a"
+        },
+        "created_at": "2026-09-28T14:13:50.893127+00:00"
+      },
+      "attempt_count_before": 2,
+      "after": {
+        "id": "dd7d38a2d07d4bd2964a6cc3307d51d2",
+        "status": "running",
+        "stage": "Solving laminar flow through the approved STEP mesh",
+        "process": {
+          "pid": 16932,
+          "start_ticks": "212871",
+          "boot_id": "68d0e552-c69f-48ad-abc6-4a99419e915a"
+        },
+        "created_at": "2026-09-28T14:13:50.893127+00:00"
+      },
+      "attempt_count_after": 2
+    },
+    "cancellation_and_retry": [
+      {
+        "id": "191fd9a2b48f44c694e9ddbb0f6a01d5",
+        "status": "cancelled",
+        "retry_of": "31e3be7d20b64dfe9e9b38a67ec685bf",
+        "error": "Cancelled by the user; partial evidence was preserved."
+      },
+      {
+        "id": "31e3be7d20b64dfe9e9b38a67ec685bf",
+        "status": "cancelled",
+        "retry_of": null,
+        "error": "Cancelled by the user; partial evidence was preserved."
+      }
+    ],
+    "camera_regression": {
+      "before": "failed restoring the repeated annotation; first correction also exposed retained near/far clipping",
+      "after": "browser passed, native pixels identical after two orbit/restore cycles",
+      "native": {
+        "crop": [
+          290,
+          35,
+          1015,
+          420
+        ],
+        "cycles": [
+          {
+            "cycle": 1,
+            "orbited_different_pixels": 26297,
+            "restored_different_pixels": 0
+          },
+          {
+            "cycle": 2,
+            "orbited_different_pixels": 26540,
+            "restored_different_pixels": 0
+          }
+        ]
+      }
+    },
+    "native_export_replay": {
+      "status": "passed",
+      "pressure_relative_difference": 0.0,
+      "outlet_relative_differences": {
+        "outlet_1": 0.0,
+        "outlet_2": 0.0
+      },
+      "reproduction_relative_difference": 0.0
+    },
+    "artifacts": {
+      "native-import.png": "ea414b4f8570cfae930054aee4f7cd52075d9cfd069a31e022790278ae720026",
+      "native-plan.png": "5fd4f915ebff3a9d0346e9e9699c2e37f7a3add9a4cdf8d31233d3aebf1ff0f8",
+      "native-reopened.txt": "e0b4e1397c5161bc0ebd23ccd7acac6be13fd17289220224acb52926af5bc800",
+      "native-mesh.png": "5d1de75b15eac900abfe10887f9eff8c26c188d86002c04ef09c29978be63759",
+      "native-historical-reopened.txt": "7bb359dbb89c642f0f8fd57c1ab61f75bcbd5205b43e0eaa8a140e776b970d7b",
+      "native-reconnected.txt": "91129c8873901760bdd8d54ca3f331e8a9ecb5a99c1366f679138e209f0a3732",
+      "native-result.png": "0b8e38b93449a3185b74e7f7ed87cfec3f127b5dad231643f61dc85112df716b",
+      "native-result.txt": "1690287816d844b083fe995e570a8b057bcb037d5d1d3c4a688ae8ca9ef48c72",
+      "native-numerical-result.png": "c93ecb814304126462c40ec75cac3942ba9f71e51bda4f2dfd4fa423e9d6bc28",
+      "native-case-velocity.txt": "88f04bb172f98d00071bb81d78eb962636de489112d6be9fcbb3ced0f526c3ee",
+      "native-case-pressure.txt": "646b6d695cd9f363b1c25803c6701c0d0724affd7ea57675bde6b20ef1a755c8",
+      "native-case-mapping.txt": "cc3311c7e7d1f4aaa94a5646961bc9c44665d0ee8cdc03dac46a63a836236a5c",
+      "native-case-diff.txt": "b86b53eacd360c23711100c39e28967a34ec572cbea7b2865822bf12f2323622",
+      "native-metrics.csv": "39e760b633fa7ece35fb5829ff9dbdca2d14a583322f9d2ef4a32c9fa081dfe1",
+      "native manifold \u0394.zip": "25b7ef7e1a57a7def84eb2e5d1f16ad45b1b111849a10c3ffe0207c4a7339e2a",
+      "native-cancel-retry.json": "24af8fed6429f74711337dc6b33076882df409535befc90ed786d98053beaa08",
+      "restart-during-solve.json": "142f146948068ef6254d1503b57ebd8c19661a89fc81e2c7cd09f92aa0300c36",
+      "camera-check.json": "c55bde868fa3902d7bf7fadba23cf5c407362bcdf49f9aaa9b5500554a88c9ab",
+      "final-camera-before.png": "2f724bc505a85f6af2c1620993805b43983b4bb6457d90a956d8515cd2ac566a",
+      "final-camera-orbited-1.png": "13550181a4c09d5ea83f90b874cf7cc9f97874e5bf6158fecb8c1e3e032c7c89",
+      "final-camera-restored-1.png": "ebab876bfcd607b4dbc94601661e0c4110579d807b54564f25bf11c9fd248eb5",
+      "final-camera-orbited-2.png": "419ab547217397f3fba95c02a4e4a8a4a04f7256e4c7c0d4356828bf79b93990",
+      "final-camera-restored-2.png": "90898e6d10bd743e54a004554cea1897dd1d43058472bcbcdbd297ff17d1418b",
+      "camera-regression-before.log": "7ee29ee8cb3e34bb437edcb2c5f33c80c51c80d1f79e1311f1798279e85e9a18",
+      "camera-regression-after.log": "320eb50cc0477052ab5f1f50d550b03af7e3a3fe964e1117df2353753e81c30a",
+      "native-build-final.log": "f1e2cd2b329978c0bdc0c801987a5a632ce904d9447dd3d0a6731acbb5df6fdf",
+      "replay.log": "62f9343dd8fce9421a6c406f396c55d9aba55c52b9d6999074c6739e4c55b44c",
+      "browser-final-complete.log": "f5176aa0b711eabbe3b17598a499d043db21843238d0ddad7fc9c1fc3255e62c",
+      "browser-verify-final.log": "c6fea33c313d64b657114aa9e8b5a40fb1ab4f8245646a76d09e5434f547ac6f",
+      "browser-replay-final.log": "0ab0a35845137539c8110879068f5928507f38caa7d7c29746b0397f4946cb42",
+      "cleanup.json": "101f6eb1ed3558e8cc331a7ce4a74b77707385afc8c30f66a3c3ad04474aad97"
+    },
+    "harness_notes": [
+      "Windows Computer Use helper could not attach to a Linux workspace; Linux automation completed the task.",
+      "WSLg synthetic keyboard input was unreliable; the test used an isolated Xvfb display.",
+      "Initial Xvfb setup lacked xkbcomp; dependencies were extracted locally without system installation."
+    ]
+  }
 }

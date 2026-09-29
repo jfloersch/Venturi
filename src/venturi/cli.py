@@ -92,7 +92,8 @@ def reproduce(source: Path, output: Path) -> dict:
         result = read_json(original / "result.json")
         if (
             result.get("status") != "passed"
-            or result.get("recipe") not in {"laminar-pipe/1", "laminar-internal/1"}
+            or result.get("recipe")
+            not in {"laminar-pipe/1", "laminar-internal/1", "sst-straight-duct/1"}
             or result.get("workflow") == "internal_mesh"
         ):
             raise ValueError("Reproduction requires a passed pipe or internal-flow result export.")
@@ -373,7 +374,9 @@ def main() -> None:
             folder = (args.output or Path("artifacts") / f"{args.command}-{stamp}").resolve()
             cad = None
             if args.command == "mesh-spike":
-                source = Path(__file__).resolve().parents[2] / "fixtures/pipe.step"
+                from .installation import data_root
+
+                source = data_root() / "fixtures/pipe.step"
                 geometry = inspect_step(source)
                 cad = {
                     "source": source,

@@ -1488,3 +1488,107 @@ a:focus-visible {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+/* Study assistance retains the workbench's readable, inspectable form layout. */
+.assistance-panel {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  contain: inline-size;
+  overflow-wrap: anywhere;
+  border: 1px solid var(--border, #d6e0df);
+  border-radius: 12px;
+  padding: 18px;
+  margin: 20px 0;
+  background: var(--panel, #fff);
+}
+.assistance-panel summary {
+  cursor: pointer;
+  font-weight: 650;
+  padding: 4px 0;
+}
+.assistance-panel p {
+  line-height: 1.55;
+}
+.assistance-panel label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 10px 0;
+}
+.assistance-panel .confirmation {
+  flex-direction: row;
+  align-items: center;
+}
+.assistance-panel input:not([type="checkbox"]),
+.assistance-panel textarea {
+  width: 100%;
+  padding: 9px;
+  border: 1px solid #c6d2d1;
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+.assistance-panel textarea {
+  min-height: 100px;
+}
+.assistance-panel button {
+  margin: 6px 8px 6px 0;
+}
+.managed-panel button:not(.secondary),
+.setup-panel button {
+  border: 1px solid #26705a;
+  border-radius: 5px;
+  background: #216b55;
+  color: #f3fff6;
+  min-height: 36px;
+  padding: 10px 14px;
+  font-size: 11px;
+  font-weight: 550;
+}
+.managed-panel select {
+  width: 100%;
+  padding: 9px;
+  border: 1px solid #c6d2d1;
+  border-radius: 6px;
+  background: #fff;
+  color: inherit;
+}
+.setup-panel {
+  display: block;
+}
+.setup-panel button {
+  margin: 6px 8px 6px 0;
+}
+.assistance-panel article {
+  border-top: 1px solid #d6e0df;
+  padding: 12px 0;
+}
+.assistance-panel table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.assistance-panel th,
+.assistance-panel td {
+  text-align: left;
+  vertical-align: top;
+  padding: 10px;
+  border-bottom: 1px solid #d6e0df;
+  overflow-wrap: anywhere;
+}
+.assistant-context {
+  max-height: 320px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.scientific-view {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  background: white;
+}
+.assistance-panel figure {
+  margin: 16px 0;
+}

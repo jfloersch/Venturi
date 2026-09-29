@@ -24,6 +24,11 @@ import { FlowSetup, loadStudyValues, studyFromValues } from "./FlowSetup";
 import { MeshReview } from "./MeshReview";
 import { Annotations } from "./Annotations";
 import { CaseViewer } from "./CaseViewer";
+import { SetupPanel, SupportPanel } from "./SetupPanel";
+import { ManagedPanel } from "./ManagedPanel";
+import { AssistantPanel } from "./AssistantPanel";
+import { RecoveryPanel } from "./RecoveryPanel";
+import { VisualReview } from "./VisualReview";
 import type {
   Check as EvidenceCheck,
   Diagnostics,
@@ -52,6 +57,9 @@ const runLabel = (kind: RunKind) =>
 function studyIdentity(study: InternalStudy | null | undefined): string {
   if (!study) return "";
   return JSON.stringify({
+    recipe: study.recipe,
+    turbulenceIntensity: study.turbulence_intensity,
+    turbulenceLengthScale: study.turbulence_length_scale_m,
     name: study.name,
     geometry: study.selection.geometry_hash,
     assignments: Object.entries(study.selection.assignments).sort(([a], [b]) =>
@@ -161,6 +169,7 @@ export function App() {
     return supplied || sessionStorage.getItem("venturi-token") || "";
   });
   const [tokenInput, setTokenInput] = useState(token);
+  const [connectionAttempt, setConnectionAttempt] = useState(0);
   const [diagnostics, setDiagnostics] = useState<Diagnostics | null>(null);
   const [geometry, setGeometry] = useState<Geometry | null>(null);
   const [assignments, setAssignments] = useState<Record<string, Role>>({});
@@ -262,12 +271,25 @@ export function App() {
     let disposed = false;
     setConnecting(true);
     setError("");
-    Promise.all([
-      api("/diagnostics"),
-      api("/geometry"),
-      api("/runs"),
-      api("/workspace"),
-    ])
+    const loadWorkspace = async () => {
+      // Windows localhost forwarding can lag behind a restarted WSL worker.
+      // Retry only reads after network failures; HTTP/auth failures stay explicit.
+      for (let attempt = 0; ; attempt++) {
+        try {
+          return await Promise.all([
+            api("/diagnostics"),
+            api("/geometry"),
+            api("/runs"),
+            api("/workspace"),
+          ]);
+        } catch (error) {
+          if (disposed || !(error instanceof TypeError) || attempt >= 19)
+            throw error;
+          await new Promise((resolve) => window.setTimeout(resolve, 250));
+        }
+      }
+    };
+    loadWorkspace()
       .then(
         ([d, g, r, workspace]: [
           Diagnostics,
@@ -320,7 +342,7 @@ export function App() {
     return () => {
       disposed = true;
     };
-  }, [token, api]);
+  }, [token, api, connectionAttempt]);
 
   useEffect(() => {
     if (!diagnostics) return;
@@ -387,11 +409,11 @@ export function App() {
       setTab("evidence");
     });
   }
-  async function download(path?: string) {
+  async function download(path?: string, visual = false) {
     if (!run) return;
     await action(async () => {
       const response = await fetch(
-        `${API}/v1/runs/${run.id}/${path ? `files/${path.split("/").map(encodeURIComponent).join("/")}` : "export"}`,
+        `${API}/v1/runs/${run.id}/${visual ? "visual-review-export" : path ? `files/${path.split("/").map(encodeURIComponent).join("/")}` : "export"}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         },
@@ -401,7 +423,8 @@ export function App() {
           "Could not export this run. Wait for execution to finish.",
         );
       const filename =
-        path?.split("/").at(-1) || `venturi-${run.id.slice(0, 8)}.zip`;
+        path?.split("/").at(-1) ||
+        `venturi-${visual ? "visual-" : ""}${run.id.slice(0, 8)}.zip`;
       if ("__TAURI_INTERNALS__" in window) {
         const { save } = await import("@tauri-apps/plugin-dialog");
         const { writeFile } = await import("@tauri-apps/plugin-fs");
@@ -568,7 +591,7 @@ export function App() {
           </div>
           <div>
             <strong>First principles</strong>
-            <span>Milestone 2 · Guided desktop alpha</span>
+            <span>Milestone 4 · Public beta preparation</span>
           </div>
         </div>
         <nav aria-label="Workbench navigation">
@@ -644,14 +667,14 @@ export function App() {
         <div className="sidebar-bottom">
           <div>
             <ShieldCheck size={17} />
-            <span>Files stay on this computer</span>
+            <span>Simulations run locally</span>
           </div>
-          <p>No AI account required.</p>
+          <p>Optional AI sharing by approval.</p>
           <button onClick={() => setShowConnection(!showConnection)}>
             <PlugZap size={15} />
             Worker connection
           </button>
-          <small>VENTURI / DEVELOPMENT BUILD 0.3.0</small>
+          <small>VENTURI / DEVELOPMENT BUILD 0.5.0</small>
         </div>
       </aside>
       <main>
@@ -683,13 +706,13 @@ export function App() {
               <p>
                 {tab === "geometry"
                   ? geometry?.imported
-                    ? "Confirm the ports, review the mesh, and solve a bounded laminar study."
+                    ? "Confirm the inputs, review the mesh, and solve a bounded flow study."
                     : "A simple pipe. Known physics. An inspectable path from geometry to evidence."
                   : "Review the checks, keep the artifacts, and see exactly what has been established."}
               </p>
             </div>
             <span className="milestone-badge">
-              M2 <span>ALPHA</span>
+              M4 <span>PREVIEW</span>
             </span>
           </div>
           {error && (
@@ -700,6 +723,15 @@ export function App() {
                 ×
               </button>
             </div>
+          )}
+          {(!diagnostics || showConnection) && (
+            <SetupPanel
+              onConnected={(value) => {
+                setToken(value);
+                setTokenInput(value);
+                setConnectionAttempt((attempt) => attempt + 1);
+              }}
+            />
           )}
           {(!diagnostics || showConnection) && (
             <section className="connection-card">
@@ -715,10 +747,7 @@ export function App() {
                 onSubmit={(e) => {
                   e.preventDefault();
                   setToken(tokenInput.trim());
-                  if (tokenInput.trim() === token) {
-                    setToken("");
-                    window.setTimeout(() => setToken(tokenInput.trim()), 10);
-                  }
+                  setConnectionAttempt((attempt) => attempt + 1);
                 }}
               >
                 <label htmlFor="worker-token">Worker token</label>
@@ -749,6 +778,16 @@ export function App() {
           )}
           {diagnostics && (
             <>
+              <details className="assistance-panel">
+                <summary>Account, privacy and support</summary>
+                <ManagedPanel
+                  api={api}
+                  onChanged={async () => {
+                    window.dispatchEvent(new Event("venturi-ai-changed"));
+                  }}
+                />
+                <SupportPanel api={api} />
+              </details>
               <ol className="workflow-steps" aria-label="Study workflow">
                 {[
                   "Import fluid volume",
@@ -799,7 +838,10 @@ export function App() {
                     Flow regime
                     <strong>
                       {shownInternal
-                        ? "Laminar · port Re ≤ 200"
+                        ? (tab === "evidence" ? shownStudy : draft)?.recipe ===
+                          "sst-straight-duct/1"
+                          ? "Experimental SST · Re 4,000–100,000"
+                          : "Laminar · port Re ≤ 200"
                         : `Laminar · Re ${shownReynolds.toFixed(0)}`}
                     </strong>
                   </span>
@@ -994,6 +1036,27 @@ export function App() {
                     >
                       New study on this geometry
                     </button>
+                  )}
+                  {geometry.imported && (
+                    <AssistantPanel
+                      api={api}
+                      geometry={geometry}
+                      assignments={assignments}
+                      record={record}
+                      disabled={busy || hasActive || offline || dirty}
+                      onApplied={(saved) => {
+                        setRecord(saved);
+                        setDraft(saved.study);
+                        setStudies((old) => [
+                          saved,
+                          ...old.filter((s) => s.id !== saved.id),
+                        ]);
+                        localStorage.removeItem(
+                          `venturi-alpha-draft-${geometry.geometry_hash}-${saved.id}`,
+                        );
+                        setOpenGeneration((n) => n + 1);
+                      }}
+                    />
                   )}
                   {geometry.imported && (
                     <FlowSetup
@@ -1212,6 +1275,25 @@ export function App() {
                       </details>
                       {run.result && (
                         <>
+                          {run.kind.startsWith("internal_") &&
+                            !["queued", "running"].includes(run.status) && (
+                              <RecoveryPanel
+                                key={`recovery-${run.id}`}
+                                api={api}
+                                run={run}
+                                disabled={busy || offline || !currentStudy}
+                                onRun={(id) => setRunId(id)}
+                              />
+                            )}
+                          {run.kind === "internal_flow" &&
+                            run.result.pressure_drop_pa !== undefined && (
+                              <VisualReview
+                                key={`visual-${run.id}`}
+                                api={api}
+                                run={run}
+                                onExport={() => download(undefined, true)}
+                              />
+                            )}
                           {run.kind === "internal_mesh" &&
                             run.status === "passed" && (
                               <MeshReview

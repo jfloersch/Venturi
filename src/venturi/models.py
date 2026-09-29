@@ -96,7 +96,7 @@ class RunRequest(StrictModel):
     kind: Literal["reference", "cad_mesh", "internal_mesh", "internal_flow"]
     request_id: str = Field(pattern=r"^[a-zA-Z0-9_-]{8,80}$")
     geometry_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
-    study: "StudySpec | InternalFlowStudy | None" = None
+    study: "StudySpec | RANSFlowStudy | InternalFlowStudy | None" = None
     mesh_run_id: str | None = Field(default=None, pattern=r"^[a-zA-Z0-9_-]{1,80}$")
     approved_mesh_hash: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     retry_of: str | None = Field(default=None, pattern=r"^[a-zA-Z0-9_-]{1,80}$")
@@ -195,7 +195,19 @@ class InternalFlowStudy(StrictModel):
         return self
 
 
+class RANSFlowStudy(InternalFlowStudy):
+    """Separate schema preserves all archived laminar inputs and recipe hashes."""
+
+    schema_version: Literal["venturi.rans-study.v1"] = "venturi.rans-study.v1"
+    recipe: Literal["sst-straight-duct/1"] = "sst-straight-duct/1"
+    physics: Literal["steady-incompressible-newtonian-sst"] = "steady-incompressible-newtonian-sst"
+    turbulence_intensity: float = Field(gt=0, le=0.2)
+    turbulence_length_scale_m: float = Field(gt=0, le=1)
+
+
 def parse_study(value: dict) -> StudySpec | InternalFlowStudy:
+    if value.get("schema_version") == "venturi.rans-study.v1":
+        return RANSFlowStudy.model_validate(value)
     cls = (
         InternalFlowStudy
         if value.get("schema_version") == "venturi.internal-study.v1"

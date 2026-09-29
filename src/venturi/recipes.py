@@ -2,7 +2,14 @@
 
 from pathlib import Path
 
-from .models import InternalFlowStudy, StudySpec, canonical_hash, file_hash, parse_study
+from .models import (
+    InternalFlowStudy,
+    RANSFlowStudy,
+    StudySpec,
+    canonical_hash,
+    file_hash,
+    parse_study,
+)
 
 
 def pipe_recipe() -> dict:
@@ -86,10 +93,40 @@ def internal_recipe() -> dict:
     }
 
 
+def rans_recipe() -> dict:
+    recipe = internal_recipe()
+    recipe.update(
+        id="sst-straight-duct/1",
+        compiler="venturi.rans/1",
+        qualification="experimental; independent CFD review pending; not qualified for engineering acceptance",
+    )
+    recipe["applicability"].update(
+        geometry="one straight smooth circular duct; two equal circular planar ports; one cylindrical wall",
+        physics="steady incompressible Newtonian isothermal kOmegaSST with wall functions",
+        maximum_outlets=1,
+        minimum_port_reynolds_full_flow=4000,
+        maximum_port_reynolds_full_flow=100000,
+        minimum_length_diameters=5,
+    )
+    recipe["criteria"].update(
+        wall_yplus_minimum=30, wall_yplus_maximum=300, turbulence_equation_residual=1e-5
+    )
+    recipe["boundaries"].update(
+        turbulence="explicit I and length scale; k=1.5*(U*I)^2; omega=sqrt(k)/(0.09^0.25*L); kqRWallFunction/omegaWallFunction/nutkWallFunction"
+    )
+    return recipe
+
+
+def recipe_for(study: StudySpec | InternalFlowStudy) -> dict:
+    if isinstance(study, RANSFlowStudy):
+        return rans_recipe()
+    return internal_recipe() if isinstance(study, InternalFlowStudy) else pipe_recipe()
+
+
 def freeze_study(study: StudySpec | InternalFlowStudy) -> dict:
     # Revalidate even models constructed through a bypass such as model_copy(update=...).
     study = parse_study(study.model_dump())
-    recipe = internal_recipe() if isinstance(study, InternalFlowStudy) else pipe_recipe()
+    recipe = recipe_for(study)
     return {
         "study": study.model_dump(),
         "study_hash": canonical_hash(study.model_dump()),

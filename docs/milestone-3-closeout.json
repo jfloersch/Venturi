@@ -1,0 +1,260 @@
+{
+  "schema_version": "venturi.milestone-3-closeout.v1",
+  "recorded_at": "2026-09-28T16:00:53.646285+00:00",
+  "version": "0.4.0",
+  "implementation_status": "complete",
+  "local_acceptance_status": "passed",
+  "full_milestone_qualification": "pending_external_signoff",
+  "platform": "Ubuntu 22.04 / WSL2 x86_64",
+  "solver": "OpenFOAM Foundation 14 package 20260724",
+  "base_git_commit": "76490d06708c48540b10544a44316c008aeecd9f",
+  "tests": {
+    "python_distinct_latest_passed": 205,
+    "python_unit_contract": 177,
+    "python_native_integration": 28,
+    "browser_scenarios_passed": 8,
+    "native_release_build": "passed",
+    "lint_and_typecheck": "passed",
+    "method": "Iterative acceptance; affected tests rerun after fixes. See retained latest-test-outcomes.json and original reports."
+  },
+  "browser": {
+    "commands": [
+      "npm run test:e2e",
+      "npm run test:e2e -- --grep \"assistant UI\""
+    ],
+    "initial_result": "7 passed; assistant scenario had an import-wait test harness race",
+    "targeted_rerun": "assistant scenario passed",
+    "provider_mode": "simulated proposal/connection responses; real worker persistence/recovery/visuals"
+  },
+  "native_smoke": [
+    "Restored saved SST study and explicit turbulence inputs",
+    "Assistant connection controls; unconnected proposal disabled",
+    "Exact recovery policy approval gate",
+    "Actual pressure/speed image rendering with constrained native layout",
+    "Visual ZIP exported through GTK save dialog and all six file hashes verified"
+  ],
+  "native_binary": {
+    "path": "apps/desktop/src-tauri/target/release/venturi-desktop",
+    "sha256": "e4bb9dba351a343be59b5ebebde06daa9b2d25b33d6eac5bd8651e0f39161dd7"
+  },
+  "held_out_recovery": [
+    {
+      "path": "artifacts/milestone-3/held-out-python/test_held_out_recovery_preserv0/store/campaigns/d514dc221b5545038209fb0109fb1527/status.json",
+      "sha256": "a7675f8771dfde55cbb9d2ab6ef483a6c9205dffdb40f6b4dc4a36f23b9e44e1",
+      "status": "provisional",
+      "solver_attempts": 2,
+      "remesh_attempts": 1,
+      "changes": [
+        {
+          "field": "max_iterations",
+          "old": 100,
+          "new": 200,
+          "failing_checks": [
+            "Equation residuals",
+            "Pressure-drop stability"
+          ],
+          "rationale": "Apply the next pre-authorized recipe control; all earlier attempts retained for rollback and comparison.",
+          "affected_quantities": [
+            "pressure_drop_pa",
+            "outlet_volume_flows_m3_s"
+          ],
+          "at": "2026-09-28T15:44:33.618485+00:00",
+          "study_hash": "1bf97423db11fb34d89bbebf99d57e3328c1b818296755cf51c8c84368338424"
+        }
+      ],
+      "sensitivity": {
+        "status": "stable",
+        "relative_changes": {
+          "pressure_drop_pa": 2.8368170099606953e-06,
+          "outlet_1": 6.383749965923126e-09
+        },
+        "threshold": 0.02
+      }
+    },
+    {
+      "path": "artifacts/milestone-3/held-out-python/test_held_out_recovery_preserv1/store/campaigns/7397212af0f840b394ef16e1da268dbf/status.json",
+      "sha256": "9bc1343ee1278d4f5ad419cc6604fb878542a315499ab589b4a61d0211e4fa8e",
+      "status": "provisional",
+      "solver_attempts": 2,
+      "remesh_attempts": 1,
+      "changes": [
+        {
+          "field": "max_iterations",
+          "old": 100,
+          "new": 200,
+          "failing_checks": [
+            "Equation residuals",
+            "Pressure-drop stability"
+          ],
+          "rationale": "Apply the next pre-authorized recipe control; all earlier attempts retained for rollback and comparison.",
+          "affected_quantities": [
+            "pressure_drop_pa",
+            "outlet_volume_flows_m3_s"
+          ],
+          "at": "2026-09-28T15:46:13.744768+00:00",
+          "study_hash": "4e5890969b7ac94ae61786f9b3c844c0b46093e68f4cbc66182f19857b3742ac"
+        }
+      ],
+      "sensitivity": {
+        "status": "stable",
+        "relative_changes": {
+          "pressure_drop_pa": 0.0010811781694148614,
+          "outlet_1": 5.113999998288152e-08
+        },
+        "threshold": 0.02
+      }
+    }
+  ],
+  "sst_benchmark": {
+    "schema_version": "venturi.sst-benchmark.v1",
+    "run_id": "4d46a58cff274441bad57a0be16d4298",
+    "result_sha256": "638110beddc18f7f2ff0b88598882fc632443c98952de732875e6ab0a3a7f550",
+    "field_sha256": "d03d7c3245195839cfb16575be4160ae4291fb57b9d9238b32a31f20fb2838f9",
+    "reynolds": 59999.99999990252,
+    "length_diameters": 9.999999999983757,
+    "samples": [
+      {
+        "distance_m": 0.05,
+        "pressure_pa": 1891.2667183282413,
+        "area_m2": 7.802336029050108e-05
+      },
+      {
+        "distance_m": 0.06,
+        "pressure_pa": 1486.8097242222284,
+        "area_m2": 7.802335993890034e-05
+      },
+      {
+        "distance_m": 0.06999999999999999,
+        "pressure_pa": 1125.9694961019868,
+        "area_m2": 7.802335993890034e-05
+      },
+      {
+        "distance_m": 0.08000000000000002,
+        "pressure_pa": 742.6679896878968,
+        "area_m2": 7.802336011470071e-05
+      },
+      {
+        "distance_m": 0.09000000000000001,
+        "pressure_pa": 392.63911156135845,
+        "area_m2": 7.802336212234289e-05
+      }
+    ],
+    "pressure_gradient_pa_m": -37413.96948068094,
+    "darcy_friction_factor": 0.020785538600547125,
+    "blasius_reference": 0.020216159818360273,
+    "relative_difference": 0.0281645370487101,
+    "tolerance": 0.15,
+    "status": "pass",
+    "quantitative_status": "passed",
+    "reference": "https://www.osti.gov/servlets/purl/6117246",
+    "limitations": [
+      "Blasius is an empirical fully developed smooth-pipe correlation, not an exact solution.",
+      "This developing-inlet comparison does not establish mesh independence or broad RANS applicability.",
+      "Independent CFD review remains pending; numerical acceptance and qualification are separate."
+    ]
+  },
+  "negative_sst_case": {
+    "reynolds": 20000,
+    "expected_outcome": "failed wall resolution despite convergence",
+    "wall_yplus_range": [
+      13.5193284147,
+      46.6020472014
+    ]
+  },
+  "qualification_remaining": [
+    "Live OpenAI text/vision acceptance using a user-configured model, credential and prices",
+    "Independent CFD review/sign-off; mesh independence and broader benchmark qualification",
+    "Real OS credential-store persistence on deployment hosts",
+    "Existing native Windows/macOS/ARM qualification and observed-user pilot"
+  ],
+  "development_failures_retained": [
+    "Missing SST wall-distance configuration repaired",
+    "Dimensionless yPlus syntax normalized without weakening other dimensional checks",
+    "Initial-time yPlus output disabled to preserve frozen native inputs",
+    "Recovery waits for artifact finalization before verification",
+    "Browser assistant test waits for imported geometry revision",
+    "Native image intrinsic sizing constrained after visual inspection"
+  ],
+  "source_hashes": {
+    "apps/desktop/package-lock.json": "96efc4f0788e6f60d284c31b0988626f42d7331fd17891cc5c8ddb30fc86bf3f",
+    "apps/desktop/package.json": "a8afe46d7d0a450418282fef3b3b2480044eb5b780f5bb3892c8208b1bfa3f3c",
+    "apps/desktop/src/Annotations.tsx": "25ade883324606fa48c9af3f7272af74473415528de0f347005e96ab9e894841",
+    "apps/desktop/src/App.tsx": "9a13aa7916bd224defc7dce7a119f13960ca4fac711c15ca9f818299dd05e3eb",
+    "apps/desktop/src/AssistantPanel.tsx": "17b18175b32f0a960265900f7f66b578479cd54b7ec7dfcddac17549c3fe83e7",
+    "apps/desktop/src/CaseViewer.tsx": "8099ae634ac1094a5dc5f8a4d9704487cb66faf4c93d8301db091db96375c7c2",
+    "apps/desktop/src/FlowSetup.tsx": "f5d6ff43365d72e0d0ccd5e0b4a6eae1c703521e57585a14a678cead86556431",
+    "apps/desktop/src/MeshReview.tsx": "dd082666e8437c113bb2eb5396a45631628b1fac6fb4bb29c81b31a9a784900b",
+    "apps/desktop/src/RecoveryPanel.tsx": "a73ce4d2e635ea313f789672e4eac90154b4e55e5c267ea2054aa8585234c39e",
+    "apps/desktop/src/Viewer.tsx": "a2eb0da8f0e88a7d4d353a880cab7be34056a06621580eb40c7ab25d44add538",
+    "apps/desktop/src/VisualReview.tsx": "5cb6067267bf36601e0d8ee5dd66cc4cd516bd7d283ce1384ce991ac8fc1effc",
+    "apps/desktop/src/main.tsx": "34648b89b5f1de8956750576f7d3ab8ebaa1f54258c1304a4bda5a840248f939",
+    "apps/desktop/src/styles.css": "f5dc9a8fed6397614f5667b69d20ddb733efcb8977670a71ac72524630b9a383",
+    "apps/desktop/src/types.ts": "4cdbe56f3ad78ff1843a30f7b0d4f960c16f2e1f582e15f9c800ffaacad806b5",
+    "apps/desktop/src/vite-env.d.ts": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5",
+    "apps/desktop/src-tauri/Cargo.lock": "13c2ae472b87c0b4c842e2523ad9171ebb387bd50b4e5f51ff56fce889f0e3cc",
+    "apps/desktop/src-tauri/Cargo.toml": "f0d2563c156054d6f33753384c7a739b555f529773e41aa1f60ed97ed72a9606",
+    "apps/desktop/src-tauri/tauri.conf.json": "e177affa1d26df3188519c33745789bf00b45ab42834fb1e7fba14fc6d8da486",
+    "pyproject.toml": "e7d1fef6a4280d4a4814c17626257962811cba701e9723293f0b1d272c6414d9",
+    "scripts/check_sst_benchmark.py": "9d26633f2fd7647de93f764258d4398f152662149bbafba7204ee084e1aff6b5",
+    "src/venturi/__init__.py": "580c664af29548ffc11119e9bbb7c88addd8bbb1c198d2993ad9e9e52c945c13",
+    "src/venturi/artifacts.py": "d33ab3723a349c35e6e5fd7b5f6c29031ece40debca24221f01a80e5129b4dd3",
+    "src/venturi/assistance_api.py": "55f014fc00411c006caa8f6d45f61a7c0a0bd243b448faefeb7bbc6d2b5a5bcd",
+    "src/venturi/assistant.py": "5c50a4bee917bfb1531be0906cfe6b6db7e50f47fec5e2b9ca445b6de68c2076",
+    "src/venturi/cli.py": "f59d79408caea9baf70113de459a39402afb0fbd01fbbdece1f0bd5905699b28",
+    "src/venturi/evidence.py": "59a6a570674db06faef6a935b1bb49dde47548bf447098c9e3f1f903cff84371",
+    "src/venturi/foam.py": "8ca84dccab391484784596caaf9a644186c03a56fd024673bad3f68bcb577ca3",
+    "src/venturi/geometry.py": "5a1fc04296897bad9c349d6efd336da4cba548d14650c91252e802e4600772b5",
+    "src/venturi/internal.py": "39125a559c99cb762c7fa902e31c5b002200b2c489e4ee58d3e413f6a36d8a3e",
+    "src/venturi/jobs.py": "df08806a6391c290312305fc7c7016c2f64c6da1448dd691c4369813f3879141",
+    "src/venturi/models.py": "c43cf6e11c3ece8df3b67298651009569c83b13cc850e5fa1438fe5cdf76150e",
+    "src/venturi/process.py": "d25aabb80cbaeab8d23324bd3704260d7481a62153713e7ac27011e2f421b136",
+    "src/venturi/rans.py": "d6382da1f6f73d8e722d1bbf990258a94abce2de321568af0ac62ff27df40025",
+    "src/venturi/recipes.py": "c778178628b863e276cde59d2eeb13a4127d1e4dd4e067ec67ba712124dfbc3e",
+    "src/venturi/recovery.py": "403cc3120de2a8eedd0815dccaa586386b1ad0dcc07b3cda2a635bb9288ad239",
+    "src/venturi/runner.py": "ebfc7091e2440babbfc1d7c672feca4dcb3f9c40f38ffb66ae568eef6ba71fad",
+    "src/venturi/runtime.py": "29b4aa1b4306db1da096a8741e4016efe3661abe4cda311f67ab0d3a1957affa",
+    "src/venturi/server.py": "15aa51a88972ea81ba27380620be08f3d3ffb9bfc98cf51b1a7856b59c65c06c",
+    "src/venturi/visual_review.py": "c54b833ae90f89c0eb18d75d6af51c7b218ec0e7cc33f503c28056747d823be7",
+    "src/venturi/workflows.py": "e8b2c3f85b410ae55e83dab58b62f2117438f42e7394259330f930406bb41f91",
+    "src/venturi/workspace.py": "078b37da47125c4935a18f25ffd3bb9ea8aadec7101fa4e251d74ee8c5d0dcae",
+    "tests/test_artifacts.py": "68d62b1e98d952c8f3d8081594a0054881e6cdc60e1068cbb4225fd0e92979fc",
+    "tests/test_assistant.py": "eca1e134739f0f3f56bbe00103516b737faa244194104370ff367c37abd50daf",
+    "tests/test_evidence.py": "d5842c734c5a01c4fad36b5e325ca6dd4931b92afe2fa6783c952906952a325d",
+    "tests/test_geometry.py": "7bf015b3aa0cfb10e840ce204636c3374a5ceecd87d7f99fcd06ec013dd54129",
+    "tests/test_inputs.py": "ff869c6a8458aa4f2f8cc8f0559e76f8562af194af873b17a2e0bd1a1328076f",
+    "tests/test_integration.py": "07013885a376b5448f48cb75886195678d14e490aa6124615da06d5da2423646",
+    "tests/test_internal.py": "0766b856732161df63073eab4062523db6362b999707663bfc9dfce00d60ce9b",
+    "tests/test_internal_integration.py": "4c427ef3e695120cb622278d762c194342bf6f54d331cfc30e38429faedb1d5e",
+    "tests/test_jobs.py": "33ff0af2a90fc3f8784bd30aad2ad0a5a15916934d284c07fc1840eddb76235c",
+    "tests/test_milestone3_integration.py": "d6d24a5be1e478383b4ec27a3f7dbeabd2f57e844f48f7ec4abb184877feba35",
+    "tests/test_rans.py": "f6079383a48cb46c8c4a60a60118e23243c46f597b3488c4fac12083c9378c9b",
+    "tests/test_recovery.py": "0500f2cc31a1e4edb33062e584efac967654c9291db4e0ab12dbdc80798d16cf",
+    "tests/test_runtime.py": "8f821c534a178f2ec81b26b7ea72e3a3915cb06d2c3ea206977d6e07d282cf98",
+    "tests/test_server.py": "1e5562a5e1023fe96371b818375053ade9455519afeab16314a5d2cc8bc3dce0",
+    "tests/test_studies.py": "d38e7ffd87b0c1d68e69d5aa474aec7d4c3dd37fb53567a66ef42789fbdedadd",
+    "tests/test_workspace.py": "0f46c513558b89640c91da6ddfe5945748cb1c49614c7cb0496363b39260bba5",
+    "uv.lock": "038711c800722c85e4dbf7e7c00151e67e1e4db13342ffd04aeef5337eef1a75",
+    "apps/desktop/tests/zz_milestone3.spec.ts": "95d8062948b5a39bc3f0f01568c0ace156455fd5eadc4c15798d94bd1f440bce",
+    "apps/desktop/tests/workbench.spec.ts": "f0973e8cbb5b3d6130c819e4166f906e9422031571bf0f780baf40d14dfb0992"
+  },
+  "evidence_hashes": {
+    "artifacts/milestone-3/native-tests.xml": "78035f199a9b1c8645f5a132c42b746c555881ee3a317c6fcd82fe8181cb48ff",
+    "artifacts/milestone-3/regression-native.xml": "6da507b2dd916d0f8641ce4d67547a97d48a985c4584250a46dc67992bef399e",
+    "artifacts/milestone-3/held-out-recovery.xml": "72c54044bfd03f7b932c5c5ccb3f81b5703e9d1b829f14989df5a81e253b23a8",
+    "artifacts/milestone-3/budget-final.xml": "85379f72140ad9b2d77c0f6dabc6e9005a139ab076f8f1177e9b70f70140a89a",
+    "artifacts/milestone-3/final-unit-tests.xml": "5438f9cd65475cea79486f993cee9daff93870eb5bf9283f3e69f24b84788479",
+    "artifacts/milestone-3/final-contract-tests.xml": "fcfb81935c1f0c348992c115c9c3664a65269e35fe8e9ed8e52fd66a43183bbc",
+    "artifacts/milestone-3/final-assistant-tests.xml": "01dbd6f4df2019b9f9fc1338e6f2ce3da1bb56406ec49459ef5ca12e950b6f36",
+    "artifacts/milestone-3/latest-test-outcomes.json": "bda7811b45d971919661addc70e94dedde701ba7e6096d0550310f5f20defcc5",
+    "artifacts/milestone-3/sst-benchmark.json": "48bb6f1ee4ba9ab42f319b96fab8a81f5fd78d0f80ba7fe1379adb9d4c9d9187",
+    "artifacts/milestone-3/legacy-hash-check.json": "1189ace86e06ec8e32b96ba514f68308cca8d3757d1dbee917a38e63a5874f77",
+    "artifacts/milestone-3/native-ui/native-review-export.zip": "1b8b682a0f6794cce275b7687b5dbfdc6faf4230050274b9e2b146da95fc4e84",
+    "artifacts/milestone-3/native-ui/visual-review.verification.json": "0d97bbb9461b8f777a4284b1ede839d3b3f7c5146bb009acc85309b090a6f772",
+    "artifacts/milestone-3/native-ui/native-final-visual-review.png": "255907225d0fef567eaf1b45b8927ee2d66ffb0dae3d056dcba01359d146ac92",
+    "artifacts/milestone-3/browser-assistant.png": "44638faecfa2c1f592fe58d7638d5068de7c09cdbe89241b37bac5e69496f76b",
+    "artifacts/milestone-3/browser-visual-review.png": "3e45568d956c4434bdf3040aa5cef9f552306e5f15cc21cd4e9257c5f382e7eb",
+    "artifacts/milestone-3/native-ui/cleanup.json": "cffcff135e0d3cfb7b3eff0d05130eaac12fbeee0c7c7edf57fe0a4e880d1a60"
+  },
+  "secrets": "No real provider credential or paid provider call used; solver processes exclude provider secrets",
+  "preserved_prior_work": "Existing milestone-2 camera, browser and closeout changes retained; archived laminar study/recipe hashes verified unchanged"
+}

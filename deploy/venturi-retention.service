@@ -1,0 +1,12 @@
+[Unit]
+Description=Venturi Managed retention and metrics
+
+[Service]
+Type=oneshot
+User=venturi
+Group=venturi
+ExecStart=/opt/venturi/venv/bin/venturi-gateway metrics --database /var/lib/venturi/managed.sqlite
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/venturi

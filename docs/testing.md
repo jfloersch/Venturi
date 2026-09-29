@@ -193,7 +193,8 @@ with camera and world anchors, cross-revision reference rejection, authenticated
 artifact listing, text bounds, path/symlink refusal, file differences and frozen
 desktop context. Existing runtime tests enforce time, memory and disk limits.
 
-The five browser scenarios cover authentication; CAD selection and reference
+The six browser scenarios cover repeated annotation camera restoration;
+authentication; CAD selection and reference
 solve/export; cancellation/retry; a full real manifold study with durable save,
 edge annotation, resources, stale-input gates across reload, case inspection/diff
 and export; and stale in-flight review rejection, a real one-second budget stop,
@@ -201,3 +202,135 @@ and API disconnect/reconnect without submission. The manifold scenario also
 retains the blank-render mesh-approval regression. No solver outcomes are mocked.
 Screenshots and the portable manifold export are under `artifacts/milestone-2`.
 Automated browser completion does not count as an observed human pilot.
+
+Native Linux acceptance also follows the pilot walkthrough with the release
+executable and actual native import/save dialogs. Restart the UI and API during
+an attempt, reopen the saved study, check stale-mesh rejection after an edit,
+inspect/download evidence, cancel and retry, and verify/reproduce the exported
+archive. For annotation restoration, click a saved note, orbit, and click the
+same note again twice; the saved view must return without clipping the geometry.
+The September 28 native evidence uses WSLg for import/render and an isolated Xvfb
+display for reliable automated keyboard/mouse input. It is Linux desktop
+acceptance, not native Windows/macOS qualification or an observed human pilot.
+
+## Milestone 3 bounded assistance
+
+Use `uv sync --locked --extra cad --extra dev` for the locked Python/VTK/keyring
+dependencies. The assistant's HTTP contract tests use a simulated transport and
+test-only keys. They make no real provider calls or purchases.
+
+```bash
+uv run pytest -q -m 'not integration'
+VENTURI_INTEGRATION=1 uv run pytest -q tests/test_milestone3_integration.py
+cd apps/desktop
+npm run test:e2e
+npm run tauri build -- --no-bundle
+```
+
+`test_assistant.py` covers strict input/schema validation, unknowns, SI units,
+stale revisions/context, explicit approval, approval crash recovery, persistent
+idempotency, provider refusal/outage/incomplete output, usage reservations,
+concurrent overspend prevention, credential redaction and advisory-only visuals.
+`test_recovery.py` covers allowlisted controls, frozen physics/criteria, policy
+hashes, worker ownership, dead supervisors, sensitivity and secret isolation.
+`test_rans.py` screens physics, geometry and wall-function inputs independently of
+the solver. `test_milestone3_integration.py` runs the actual native recovery ladder,
+held-out higher-flow rotated ducts, cancellation and budget stops, SST positive and
+negative wall-resolution cases, scientific views and exact native replay.
+
+`zz_milestone3.spec.ts` adds browser consent/proposal/approval controls using a
+clearly simulated provider response; real worker recovery, cancellation after
+reload, scientific images and explicit turbulence inputs use the actual API.
+Its second scenario uses the completed manifold from `workbench.spec.ts`; run the
+complete suite for that scenario. The assistant scenario can run independently.
+
+`scripts/check_sst_benchmark.py <passed-run-directory> --output <report.json>`
+checks the declared downstream pressure-gradient diagnostic against Blasius with a
+fixed 15% tolerance. This is an empirical numerical comparison, not independent CFD
+qualification or experimental validation of arbitrary ducts.
+
+Evidence and open qualifications are in [the milestone-3 closeout](milestone-3-closeout.md).
+
+### Live Codex evaluations
+
+`scripts/check_codex_assistance.py` is an opt-in test adapter using the installed
+Codex CLI and its saved sign-in. It exercises real inference through the production
+proposal validation, geometry screening, explicit approval, revision conflict and
+idempotency paths. It does not replace Venturi's OpenAI provider or test the
+Responses HTTP transport, API credentials, token reservations or API billing.
+These runs consume the signed-in Codex account's available usage.
+
+Use a fresh output directory and explicitly choose the model to evaluate:
+
+```bash
+uv run --locked python scripts/check_codex_assistance.py \
+  --output artifacts/codex-eval-new --model YOUR_CODEX_MODEL \
+  --repeats 2 --workers 2
+```
+
+The twelve proposal cases cover SI inputs, unit conversion, missing flow/material
+data, conflicting flow, unsupported physics, transitional flow, preservation of
+saved inputs, stale approval, incomplete/complete SST inputs and annotation
+injection. The suite records its cases and expected values before inference.
+Each case uses a fresh local workspace and one bounded Codex invocation, without
+automatic retries. Repeating a proposal or approval must not call the model again
+or create an additional saved revision. Failures and raw responses are retained.
+
+For image evaluations, supply verified completed run directories:
+
+```bash
+uv run --locked python scripts/check_codex_assistance.py \
+  --output artifacts/codex-visual-new --model YOUR_CODEX_MODEL \
+  --visual-only --visual-run artifacts/YOUR_PASSED_RUN \
+  --visual-run artifacts/YOUR_FAILED_RUN --repeats 2
+```
+
+This generates images from the native fields and supplies the same scientific
+packet used by the production review. Assertions check typed artifact references,
+limitations and unchanged numerical results. The saved observations also require
+inspection for scientific accuracy: passing a JSON schema alone does not establish
+that an image interpretation is correct or provide independent CFD qualification.
+
+Codex uses a separate temporary working directory with execution, collaboration,
+plugins, browser and other optional tools disabled, a read-only sandbox and a
+300-second per-call timeout. The harness rejects unexpected tool events. Its
+structured final JSON stands in for the production function argument object;
+Codex's surrounding instructions and inference environment differ from the direct
+Responses call. Keep these results labelled as Codex evaluations.
+
+
+## Milestone 4 fault and platform acceptance
+
+The non-payment campaign uses directly seeded test wallets. Payment transports are
+forbidden in its fault and load harnesses. No OpenAI API key is needed.
+
+```sh
+uv run pytest -m 'not integration' --ignore=tests/test_gateway.py
+uv run python scripts/check_m4_load.py --output artifacts/m4-load-new --seconds 120
+cd apps/desktop
+VENTURI_SKIP_PAYMENT_TESTS=1 npm run test:e2e
+```
+
+`test_m4_resilience.py` covers thread/process contention, transaction and HTTP
+gateway crashes, live WAL backup/restore, exhausted SQLite storage, malformed and
+unauthorized inputs, credential persistence failure, and password-recovery races.
+`test_m4_installation.py` injects package corruption, download interruption, storage
+errors, dependency/solver failure and abrupt setup termination, and checks active
+work locks, version switching, rollback and path handling. Dependency substitutes
+make these failures deterministic; separate real installer runs qualify the actual
+Python/CAD/solver payload. Test wallets are never customer balances.
+
+The local HTTP load test runs 16 clients for two minutes, repeats request IDs and
+checks exact ledger conservation, provider invocation counts and database integrity.
+It reports latency on the current host; it is not a production capacity guarantee.
+Use a fresh output directory each time. The helper imports the offline test gateway
+from `tests/` and therefore runs from a development checkout with test dependencies.
+
+The optional existing `scripts/check_codex_assistance.py` harness exercises actual
+model reasoning via saved Codex sign-in. It is an inference-only adapter with tools
+disabled and does not qualify the OpenAI Responses transport, token billing or
+production pricing. Passing and failing visual cases require internal-flow native
+field artifacts; the analytical pipe-reference report is not such an artifact.
+
+See [M4 resilience results](milestone-4-resilience.md) for the measured platform
+scope, retained failures and remaining external qualification work.

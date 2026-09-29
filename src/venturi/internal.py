@@ -11,8 +11,15 @@ from . import foam
 from .artifacts import verify
 from .evidence import check, field_values, mesh_quality, read_series, validate_field, write_report
 from .geometry import export_surfaces, inspect_step, interior_point, validate_selection
-from .models import InternalFlowStudy, canonical_hash, file_hash, write_json
-from .recipes import freeze_study, internal_recipe, source_hashes
+from .models import (
+    InternalFlowStudy,
+    RANSFlowStudy,
+    canonical_hash,
+    file_hash,
+    parse_study,
+    write_json,
+)
+from .recipes import freeze_study, internal_recipe, recipe_for, source_hashes
 from .runtime import check_execution, find_foam_root, foam_environment, run_tool
 from .workflows import environment_snapshot, native_inputs
 
@@ -22,7 +29,11 @@ def study_geometry(source: Path, study: InternalFlowStudy) -> dict:
         raise ValueError("Source STEP differs from the confirmed geometry revision.")
     g = inspect_step(source)
     validate_selection(g, study.selection, internal=True)
-    applicability = internal_recipe()["applicability"]
+    applicability = recipe_for(study)["applicability"]
+    if isinstance(study, RANSFlowStudy):
+        from .rans import screen_geometry
+
+        screen_geometry(g, study)
     port_reynolds = {}
     for face in g["faces"]:
         if study.selection.assignments[face["id"]] == "wall":
@@ -36,11 +47,11 @@ def study_geometry(source: Path, study: InternalFlowStudy) -> dict:
         )
         if (
             not math.isfinite(reynolds)
-            or reynolds <= 0
+            or reynolds < applicability.get("minimum_port_reynolds_full_flow", 1e-30)
             or reynolds > applicability["maximum_port_reynolds_full_flow"]
         ):
             raise ValueError(
-                "Internal flow requires full-flow Reynolds <=200 at every port; change the study or use a qualified different method."
+                f"Recipe {study.recipe} requires port Reynolds in [{applicability.get('minimum_port_reynolds_full_flow', 0)}, {applicability['maximum_port_reynolds_full_flow']}]; review the physical study."
             )
         if (
             diameter / study.mesh.cell_size_m
@@ -304,10 +315,14 @@ def compile_flow(case: Path, study: InternalFlowStudy) -> None:
         patches=[p for p in patches if p != "background"],
         magnitude_flux=True,
     )
+    if isinstance(study, RANSFlowStudy):
+        from .rans import compile_turbulence
+
+        compile_turbulence(case, study)
 
 
 def flow_evidence(case: Path, study: InternalFlowStudy, audit: dict) -> dict:
-    criteria = internal_recipe()["criteria"]
+    criteria = recipe_for(study)["criteria"]
     names = list(audit["patches"])
     series = {
         f"{patch}_{field}": read_series(
@@ -475,7 +490,7 @@ def execute_internal(
     progress=lambda _: None,
 ) -> dict:
     frozen = freeze_study(study)
-    study = InternalFlowStudy.model_validate(frozen["study"])
+    study = parse_study(frozen["study"])
     write_json(folder / "study.json", frozen["study"])
     write_json(folder / "recipe.json", frozen["recipe"])
     geometry = study_geometry(folder / "source.step", study)
@@ -557,6 +572,10 @@ def execute_internal(
         ],
     }
     case = folder / "case"
+    if isinstance(study, RANSFlowStudy):
+        result["limitations"][0] = (
+            "Experimental k-omega SST straight smooth duct recipe; independent CFD review and engineering qualification pending."
+        )
     if solve and all(c["status"] == "pass" for c in checks):
         if audit["mesh_hash"] != approved_hash:
             raise ValueError(
@@ -588,12 +607,18 @@ def execute_internal(
                 raise ValueError(
                     "Exported native inputs differ from the deterministic compiler; refusing edited dictionaries or mesh."
                 )
-        progress("Solving laminar flow through the approved STEP mesh")
+        progress("Solving flow through the approved STEP mesh")
         run_tool("foamRun", case, study.timeout_seconds, cancel)
         progress("Checking pressure, conservation and outlet flow split")
         evidence = flow_evidence(case, study, audit)
         checks.extend(evidence.pop("checks"))
         result.update(evidence)
+        if isinstance(study, RANSFlowStudy):
+            from .rans import turbulence_evidence
+
+            turbulent = turbulence_evidence(case, study, audit)
+            checks.extend(turbulent.pop("checks"))
+            result.update(turbulent)
         progress("Exporting velocity and pressure fields")
         run_tool("foamToVTK", case, study.mesh.timeout_seconds, cancel, ("-latestTime",))
         checks.append(

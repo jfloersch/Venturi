@@ -1,0 +1,207 @@
+{
+  "schema_version": "venturi.milestone-3-verification.v1",
+  "recorded_at": "2026-09-28T16:34:17.285845+00:00",
+  "version": "0.4.0",
+  "automated_verification": "passed",
+  "full_milestone_qualification": "pending_external_signoff",
+  "tests": {
+    "distinct_latest_python_passed": 209,
+    "unit_contract": 181,
+    "native_integration": 28,
+    "full_suite_passed": 205,
+    "browser_passed": 8,
+    "frontend_build": "passed",
+    "native_release_build": "passed",
+    "lint_format_whitespace": "passed",
+    "browser_export_verified_files": 180
+  },
+  "live_codex": {
+    "model": "gpt-6-astra",
+    "reasoning_effort": "xhigh",
+    "authentication": "saved ChatGPT sign-in",
+    "provider_invocations": 43,
+    "initial_proposals": {
+      "passed": 23,
+      "failed": 1
+    },
+    "final_proposals_passed": 14,
+    "visual_responses_passed": 4,
+    "final_suites": {
+      "codex-proposals-final": {
+        "passed": 12,
+        "report": "artifacts/milestone-3-verification-20260928/codex-proposals-final/outcomes.json"
+      },
+      "codex-conversion-repeat": {
+        "passed": 2,
+        "report": "artifacts/milestone-3-verification-20260928/codex-conversion-repeat/outcomes.json"
+      },
+      "codex-visual-replay": {
+        "passed": 2,
+        "report": "artifacts/milestone-3-verification-20260928/codex-visual-replay/outcomes.json"
+      },
+      "codex-visual-failed": {
+        "passed": 2,
+        "report": "artifacts/milestone-3-verification-20260928/codex-visual-failed/outcomes.json"
+      }
+    },
+    "usage": {
+      "input_tokens": 457817,
+      "cached_input_tokens": 47616,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 63091,
+      "reasoning_output_tokens": 37035
+    },
+    "visual_reader_revalidation": "Two original successful responses revalidated offline after explicit UTF-8 fix; no model resends for these responses.",
+    "visual_semantic_review": "Developer inspection against supplied field values and plots; not independent CFD qualification.",
+    "production_responses_transport_tested": false
+  },
+  "fixes": [
+    "Complete laminar proposals no longer require analytical fully-developed-flow assumptions.",
+    "Explicit UTF-8 in the Codex test reader; four offline regression tests.",
+    "Formatted six existing Python files without changing numerical criteria."
+  ],
+  "sst_benchmark": {
+    "schema_version": "venturi.sst-benchmark.v1",
+    "run_id": "e8c7944aecd7495e98db6842b6dc4a4e",
+    "result_sha256": "41e42e0604b7659c3293ad55003102c7d2a6860fbbff5e5780f6109f19a05770",
+    "field_sha256": "d03d7c3245195839cfb16575be4160ae4291fb57b9d9238b32a31f20fb2838f9",
+    "reynolds": 59999.99999990252,
+    "length_diameters": 9.999999999983757,
+    "samples": [
+      {
+        "distance_m": 0.05,
+        "pressure_pa": 1891.2667183282413,
+        "area_m2": 7.802336029050108e-05
+      },
+      {
+        "distance_m": 0.06,
+        "pressure_pa": 1486.8097242222284,
+        "area_m2": 7.802335993890034e-05
+      },
+      {
+        "distance_m": 0.06999999999999999,
+        "pressure_pa": 1125.9694961019868,
+        "area_m2": 7.802335993890034e-05
+      },
+      {
+        "distance_m": 0.08000000000000002,
+        "pressure_pa": 742.6679896878968,
+        "area_m2": 7.802336011470071e-05
+      },
+      {
+        "distance_m": 0.09000000000000001,
+        "pressure_pa": 392.63911156135845,
+        "area_m2": 7.802336212234289e-05
+      }
+    ],
+    "pressure_gradient_pa_m": -37413.96948068094,
+    "darcy_friction_factor": 0.020785538600547125,
+    "blasius_reference": 0.020216159818360273,
+    "relative_difference": 0.0281645370487101,
+    "tolerance": 0.15,
+    "status": "pass",
+    "quantitative_status": "passed",
+    "reference": "https://www.osti.gov/servlets/purl/6117246",
+    "limitations": [
+      "Blasius is an empirical fully developed smooth-pipe correlation, not an exact solution.",
+      "This developing-inlet comparison does not establish mesh independence or broad RANS applicability.",
+      "Independent CFD review remains pending; numerical acceptance and qualification are separate."
+    ]
+  },
+  "qualification_remaining": [
+    "Live production OpenAI Responses/API-key connection and usage accounting.",
+    "Independent CFD review, mesh sensitivity and scientific qualification.",
+    "OS credential persistence on deployment hosts; Windows/macOS/ARM qualification and observed-user pilot."
+  ],
+  "source_hashes": {
+    "docs/milestone-3-closeout.md": "6d3cfcb639400179a761776a535ee042b579036d68d2b53a3636e677b976d09e",
+    "docs/milestone-3-verification.md": "34abfd56468df947df24a89ea470e0162eec75570d0f6cfa7e76754da31354bf",
+    "docs/testing.md": "e59f6faaa6b88f484db2c8f3a32afe9aeba671ea587bf5d3acaa70ba97949476",
+    "scripts/bootstrap_paraview.py": "0237f44d5c0daef26ecccf67230fd625c67bb7b5a8f4342c2d0d327b4a53362c",
+    "scripts/bootstrap_worker.py": "e61148d9a91ae34b185398af74a0e0322c1d1f482581105b52168ddc60b67481",
+    "scripts/check_codex_assistance.py": "f9e3dd6ae8989a7162ed3f4233d299912467187a55c6f4ce649e77e51c9cb817",
+    "scripts/check_internal_matrix.py": "eda0d1beb43bdf0e7e0a2fa162ab718850b9af5f22ad8750337c8b1c6075999f",
+    "scripts/check_reference_matrix.py": "ffb44cd17a3685a04078c8ad0ebd7c184a24f4cad96c3e9c9484d3f7b78ed21a",
+    "scripts/check_sst_benchmark.py": "9d26633f2fd7647de93f764258d4398f152662149bbafba7204ee084e1aff6b5",
+    "scripts/dev.py": "a3d5afc0514dd10751ee6b2a0606e113b8a1cae30dca6145e5f3f1dc155da7de",
+    "scripts/make_flow_fixtures.py": "8d8d78da9c5a1e00b717f6b42f3ab0f72089dbc0abf5af0f18257c5b85a3d7ef",
+    "scripts/paraview_render.py": "51287e9178ebbda397cd7cbdf37c7254f2e6c6622284f051862be78fba895ce4",
+    "scripts/windows_wsl_probe.py": "ce2a248522c42593d6e96469497fad738d1b5cf1f2c7e8c03d1d858684ad200a",
+    "src/venturi/__init__.py": "580c664af29548ffc11119e9bbb7c88addd8bbb1c198d2993ad9e9e52c945c13",
+    "src/venturi/artifacts.py": "d33ab3723a349c35e6e5fd7b5f6c29031ece40debca24221f01a80e5129b4dd3",
+    "src/venturi/assistance_api.py": "55f014fc00411c006caa8f6d45f61a7c0a0bd243b448faefeb7bbc6d2b5a5bcd",
+    "src/venturi/assistant.py": "9d917139387a41cf24398b99f514401f49d9ba2c2d809b25971daf6fcc92b381",
+    "src/venturi/cli.py": "beed105f2422d101ffe056d628780d8bef63a508552fd80299f1b5742d4fc64f",
+    "src/venturi/evidence.py": "59a6a570674db06faef6a935b1bb49dde47548bf447098c9e3f1f903cff84371",
+    "src/venturi/foam.py": "8ca84dccab391484784596caaf9a644186c03a56fd024673bad3f68bcb577ca3",
+    "src/venturi/geometry.py": "5a1fc04296897bad9c349d6efd336da4cba548d14650c91252e802e4600772b5",
+    "src/venturi/internal.py": "cfeaf548910a70c198f99dd5dda969256a0203c84426d5673d585bdae2af6f8a",
+    "src/venturi/jobs.py": "b62ce29ee0d36cfb08ede0a601a9baefe9c21255a063b08bdf13dc3189d08991",
+    "src/venturi/models.py": "c43cf6e11c3ece8df3b67298651009569c83b13cc850e5fa1438fe5cdf76150e",
+    "src/venturi/process.py": "d25aabb80cbaeab8d23324bd3704260d7481a62153713e7ac27011e2f421b136",
+    "src/venturi/rans.py": "d6382da1f6f73d8e722d1bbf990258a94abce2de321568af0ac62ff27df40025",
+    "src/venturi/recipes.py": "091f24f09dc608190b932b6afd118d8a3adad785898ff7f9a3a144c83d100614",
+    "src/venturi/recovery.py": "59d21dbafd7c4d94cb12f4be10ca1cfaabb1b55ea0d2c2867af9cfd4b33b1c8b",
+    "src/venturi/runner.py": "ebfc7091e2440babbfc1d7c672feca4dcb3f9c40f38ffb66ae568eef6ba71fad",
+    "src/venturi/runtime.py": "29b4aa1b4306db1da096a8741e4016efe3661abe4cda311f67ab0d3a1957affa",
+    "src/venturi/server.py": "30bb26f3b3533cdb19b771bac540e7ca8cd3d76190a6479f08674ada263af9f4",
+    "src/venturi/visual_review.py": "c54b833ae90f89c0eb18d75d6af51c7b218ec0e7cc33f503c28056747d823be7",
+    "src/venturi/workflows.py": "e8b2c3f85b410ae55e83dab58b62f2117438f42e7394259330f930406bb41f91",
+    "src/venturi/workspace.py": "078b37da47125c4935a18f25ffd3bb9ea8aadec7101fa4e251d74ee8c5d0dcae",
+    "tests/test_artifacts.py": "68d62b1e98d952c8f3d8081594a0054881e6cdc60e1068cbb4225fd0e92979fc",
+    "tests/test_assistant.py": "eca1e134739f0f3f56bbe00103516b737faa244194104370ff367c37abd50daf",
+    "tests/test_codex_evaluation.py": "6c6f710727c7909d3bd2a06a299fb5344e3dfeee1f29d228de4fd7b871e36105",
+    "tests/test_evidence.py": "d5842c734c5a01c4fad36b5e325ca6dd4931b92afe2fa6783c952906952a325d",
+    "tests/test_geometry.py": "7bf015b3aa0cfb10e840ce204636c3374a5ceecd87d7f99fcd06ec013dd54129",
+    "tests/test_inputs.py": "ff869c6a8458aa4f2f8cc8f0559e76f8562af194af873b17a2e0bd1a1328076f",
+    "tests/test_integration.py": "07013885a376b5448f48cb75886195678d14e490aa6124615da06d5da2423646",
+    "tests/test_internal.py": "0766b856732161df63073eab4062523db6362b999707663bfc9dfce00d60ce9b",
+    "tests/test_internal_integration.py": "4c427ef3e695120cb622278d762c194342bf6f54d331cfc30e38429faedb1d5e",
+    "tests/test_jobs.py": "33ff0af2a90fc3f8784bd30aad2ad0a5a15916934d284c07fc1840eddb76235c",
+    "tests/test_milestone3_integration.py": "d6d24a5be1e478383b4ec27a3f7dbeabd2f57e844f48f7ec4abb184877feba35",
+    "tests/test_rans.py": "f6079383a48cb46c8c4a60a60118e23243c46f597b3488c4fac12083c9378c9b",
+    "tests/test_recovery.py": "0500f2cc31a1e4edb33062e584efac967654c9291db4e0ab12dbdc80798d16cf",
+    "tests/test_runtime.py": "8f821c534a178f2ec81b26b7ea72e3a3915cb06d2c3ea206977d6e07d282cf98",
+    "tests/test_server.py": "1e5562a5e1023fe96371b818375053ade9455519afeab16314a5d2cc8bc3dce0",
+    "tests/test_studies.py": "d38e7ffd87b0c1d68e69d5aa474aec7d4c3dd37fb53567a66ef42789fbdedadd",
+    "tests/test_workspace.py": "0f46c513558b89640c91da6ddfe5945748cb1c49614c7cb0496363b39260bba5"
+  },
+  "evidence_hashes": {
+    "artifacts/milestone-3-verification-20260928/python.xml": "b979df64ae261e0f0bacdf6a0a2c3719535a0d08c3b66df5dd7373d54397270c",
+    "artifacts/milestone-3-verification-20260928/verified-unit.xml": "7092a44497ed5f516f48c783831b7857a389fa55dcdda7d72c87fdbf38cb58ca",
+    "artifacts/milestone-3-verification-20260928/browser.xml": "0c13a6a071c768a388ff570b01e4ea70f821648c68a8106b31db3bf1e88c4933",
+    "artifacts/milestone-3-verification-20260928/codex-reader.xml": "4beaa7251e51069180b618161ad37ab817c0a116f8b5fb109f96f7da9e452657",
+    "artifacts/milestone-3-verification-20260928/latest-python-outcomes.json": "7206f7970497e006c1f791601252ec88f986d30e605d3ff93f446f3a61818f00",
+    "artifacts/milestone-3-verification-20260928/sst-benchmark.json": "64e4ab2d433381fc9a6e5abd5b4d1a5f525bedbe1f8ef3263c6fd91dfcebb34d",
+    "artifacts/milestone-3-verification-20260928/recovery-outcomes.json": "3ab382ba19b9270bea1d8334430dbbd032bc6e43620cbd900f0a1a7c836a7ab3",
+    "artifacts/milestone-3-verification-20260928/browser-preservation.json": "e871e17da8c98366fb0e0d9ed953843c15b17c6ef0dabe3af7272c74561e2f17",
+    "artifacts/milestone-3-verification-20260928/browser-export-verification.txt": "c6fea33c313d64b657114aa9e8b5a40fb1ab4f8245646a76d09e5434f547ac6f",
+    "artifacts/milestone-3-verification-20260928/codex-invocations.json": "cd4a25174091980194f178c762b8de95f87af7356f30ea2a1d202f5878698161",
+    "artifacts/milestone-3-verification-20260928/lint.log": "d4d3dac0ebf1a13e4330e0681847f1fda53bdfad873e0795f86c3ddae3415f16",
+    "artifacts/milestone-3-verification-20260928/frontend-build.log": "9e966737a0442471e943b17beeaade2a44b8990decf331b7080ff663af374fd6",
+    "artifacts/milestone-3-verification-20260928/native-build.log": "780b68463233cb01f1deb290031173faecfddfb219a81acf2dcd6ab598f4c43f",
+    "artifacts/milestone-3-verification-20260928/visual-rubric.json": "0be69ae98044d1095b843e9fe50aad36288a330df5bd0ebe43c4575ba17b54b5",
+    "artifacts/milestone-3-verification-20260928/codex-conversion-repeat/outcomes.json": "0d948fc02286dbe465db7bbb4945b8c42486819475b6fc27f673592965fbe5ae",
+    "artifacts/milestone-3-verification-20260928/codex-proposals/outcomes.json": "9fc94af3ae69e0679200f2f851a8b389b57686d91460cf9d11f225082df83159",
+    "artifacts/milestone-3-verification-20260928/codex-proposals-final/outcomes.json": "b1ff6ae91bf8383adb635844630d0786a0594df082229080bd85fe579e6f7add",
+    "artifacts/milestone-3-verification-20260928/codex-smoke/outcomes.json": "ce7891257d5778daf2fa1483cdec0663224bf6cee65b57d5c81019ccced908ba",
+    "artifacts/milestone-3-verification-20260928/codex-visual-failed/outcomes.json": "97375266140e749c0f156b6b7c0fc7b10504f992b81f697838d30f7591d39e23",
+    "artifacts/milestone-3-verification-20260928/codex-visual-passed/outcomes.json": "89ca82203e3c1ba19aaed8f591a22b1f51616501dd9fcf21c732011de488c6e1",
+    "artifacts/milestone-3-verification-20260928/codex-visual-replay/outcomes.json": "e9b09cc356c447210fc62374ce4cb4bb654ca7d9fd346bc85c381a36a24b3a18",
+    "artifacts/milestone-3-verification-20260928/codex-visual-failed/visual_0-1/inspection.json": "9eea77d5af195d38770b0b6defd0cefba9b38c0cf72937d93ab31fb340667e78",
+    "artifacts/milestone-3-verification-20260928/codex-visual-failed/visual_0-2/inspection.json": "e583d70e38bcbc5fb94578eb530ba7e365c945a5a39d3d9be62dd596eaeb22c5",
+    "artifacts/milestone-3-verification-20260928/codex-visual-replay/visual_0-1/inspection.json": "68d6c7f1ecdfee73f7739c4e5d722410d0a6cd0dadcbc8c119b621b2568cc1e8",
+    "artifacts/milestone-3-verification-20260928/codex-visual-replay/visual_0-2/inspection.json": "50d04e5e4570138d2ef6b4f9c65051cbe9cf4b0eec68c3b14a41c23578a4e638",
+    "artifacts/milestone-3-verification-20260928/cleanup.json": "26ccdec36543358b6c04d9924fed70bd824f7c44107658a4259a2bfb81e0909d"
+  },
+  "native_binary_sha256": "e4bb9dba351a343be59b5ebebde06daa9b2d25b33d6eac5bd8651e0f39161dd7",
+  "prior_browser_evidence_preserved": true,
+  "cleanup": {
+    "recorded_at": "2026-09-28T16:35:06.907194+00:00",
+    "owned_test_processes": [],
+    "browser_test_ports": {
+      "1421": "free",
+      "8766": "free"
+    }
+  }
+}

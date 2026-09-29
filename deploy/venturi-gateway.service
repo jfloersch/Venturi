@@ -1,0 +1,28 @@
+[Unit]
+Description=Venturi Managed AI gateway
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=venturi
+Group=venturi
+WorkingDirectory=/opt/venturi
+Environment=VENTURI_GATEWAY_CONFIG=/etc/venturi/gateway.json
+EnvironmentFile=/etc/venturi/gateway.env
+ExecStart=/opt/venturi/venv/bin/venturi-gateway serve --host 127.0.0.1 --port 8780
+Restart=on-failure
+RestartSec=5
+StateDirectory=venturi
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+MemoryMax=1G
+TasksMax=128
+LimitNOFILE=4096
+
+[Install]
+WantedBy=multi-user.target

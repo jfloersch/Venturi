@@ -2,18 +2,28 @@
 
 A local CFD workbench with inspectable geometry, deterministic execution, and evidence attached to every result.
 
-This checkout implements **milestone 2, the guided desktop alpha**: prepared
-STEP → annotated references → saved study and resource plan → reviewed mesh →
-laminar flow → inspectable results, native case and export. No AI account is needed.
-The milestone-1 analytical pipe reference remains available. Numerical criteria
-are provisional; independent CFD review and native Windows/macOS qualification
-remain pending.
+This checkout implements **milestone 4, public-beta preparation and Managed paygo**:
+guided local setup, packaged worker startup, an optional hosted Managed AI gateway,
+prepaid checkout and spending controls, plus privacy and support tools. The existing
+BYO OpenAI and manual simulation workflows remain available. Version: **0.5.0**.
 
-See the [milestone 2 implementation and pilot guide](docs/milestone-2.md),
+Simulation execution works without an AI account. The SST recipe remains
+experimental. Live provider/payment acceptance, code signing, independent CFD
+review, observed-user acceptance and native Windows/macOS qualification are
+separate release gates; an implementation or CI definition does not close them.
+
+Start with [installation and onboarding](docs/milestone-4-onboarding.md), the
+[milestone 4 contract](docs/milestone-4.md), and
+[gateway deployment/support](docs/milestone-4-deployment.md). The application is
+GPL-3.0-only; see [LICENSE](LICENSE) and [third-party inventory](THIRD_PARTY_NOTICES.md).
+
+See the [milestone 3 contract](docs/milestone-3.md),
+[milestone 3 closeout](docs/milestone-3-closeout.md),
+[milestone 2 implementation and pilot guide](docs/milestone-2.md),
 [measured acceptance](docs/milestone-2-closeout.md),
 [testing guide](docs/testing.md), and [milestone 1 numerical closeout](docs/milestone-1-closeout.md).
 
-## Try it on Ubuntu 22.04 / WSL2
+## Develop on Ubuntu 22.04 / WSL2
 
 Prerequisites: [uv](https://docs.astral.sh/uv/) and Node.js 22.12+ **inside Linux**. uv installs the project's Python 3.12 interpreter. The CAD bindings also require Linux graphics libraries, even when running the worker without a display. The native desktop additionally needs Rust and the [Tauri Linux prerequisites](https://v2.tauri.app/start/prerequisites/). Browser mode does not need Rust.
 
@@ -47,6 +57,13 @@ uv run python scripts/dev.py --desktop --built
 The compiled executable is created by running `npm run tauri build -- --no-bundle` in `apps/desktop`.
 
 Jobs run in independent local processes. Closing the browser/native UI or stopping/restarting the API does not stop an active job. Reopening reconnects to its saved state. Use **Cancel run** or `uv run venturi cancel <run-id>` to stop it. A dead runner is recorded as interrupted with a failure report; an explicit retry creates a new attempt from iteration zero. There is no automatic solver resume.
+
+## Bounded assistance
+
+- Open **Study assistant · OpenAI** on imported geometry. Enter a model enabled on your account, its current token prices, a total AI budget and your key. The default session connection keeps the key in worker memory. Optional persistence requires the OS credential store; plaintext fallback is refused. Preview the context and approve sharing before asking for a proposal. Unknown inputs and unsupported studies block application. Applying a proposal requires a separate approval and creates a saved revision with its source ledger.
+- After reviewing a completed mesh, open **Bounded numerical recovery**. Review and approve the exact policy, including solver/remesh attempt counts, iteration ceiling, refinement factor and aggregate time/disk limits. The worker may change only the approved numerical controls. It retains every attempt and stops for unsupported failures, exhausted budgets, cancellation or lost supervisor ownership. Results remain provisional; automatic retries never establish independent engineering validation.
+- On a completed internal-flow result, open **Visual evidence review** to generate native pressure/speed slices with units, legends, mesh edges and port labels. Optional OpenAI observations require separate sharing consent and cannot change numerical status. **Export visual review** saves the packet, images, observations and a hash manifest separately from the immutable native run archive.
+- **Flow recipe → Experimental SST** requires explicit turbulence intensity and length scale. Only straight smooth circular ducts, port Reynolds 4,000–100,000 and wall y+ 30–300 are accepted by this experimental numerical contract. A converged calculation can still fail the wall-resolution gate.
 
 ## Guided desktop alpha
 

@@ -1,0 +1,13 @@
+# Replace this hostname with the same HTTPS origin configured in gateway.json.
+managed.example.com {
+    request_body {
+        max_size 256KB
+    }
+    reverse_proxy 127.0.0.1:8780
+    header {
+        Strict-Transport-Security "max-age=31536000"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "no-referrer"
+    }
+    # Do not enable body, Authorization, or raw webhook logging.
+}

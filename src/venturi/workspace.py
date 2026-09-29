@@ -13,13 +13,20 @@ from pydantic import Field
 from .geometry import inspect_step
 from .internal import study_geometry
 from .jobs import file_lock, now, read_json
-from .models import InternalFlowStudy, StrictModel, canonical_hash, file_hash, write_json
+from .models import (
+    InternalFlowStudy,
+    RANSFlowStudy,
+    StrictModel,
+    canonical_hash,
+    file_hash,
+    write_json,
+)
 
 
 class StudySave(StrictModel):
     id: str | None = Field(default=None, pattern=r"^[0-9a-f]{32}$")
     expected_revision: int = Field(default=0, ge=0)
-    study: InternalFlowStudy
+    study: RANSFlowStudy | InternalFlowStudy
     question: str = Field(min_length=1, max_length=2000)
     material_source: str = Field(min_length=1, max_length=500)
     profile: Literal["guided", "collaborative", "expert"] = "guided"
@@ -88,11 +95,11 @@ def plan_study(storage: Path, study: InternalFlowStudy) -> dict:
     }
 
 
-def save_study(storage: Path, request: StudySave) -> dict:
+def save_study(storage: Path, request: StudySave, *, approval: dict | None = None) -> dict:
     plan_study(storage, request.study)
     if not request.question.strip() or not request.material_source.strip():
         raise ValueError("Describe the engineering question and fluid property source.")
-    key = request.id or uuid.uuid4().hex
+    key = request.id or (approval["study_id"] if approval else uuid.uuid4().hex)
     folder = storage / "studies" / key
     with file_lock(storage / ".workspace.lock"):
         previous = (
@@ -111,6 +118,8 @@ def save_study(storage: Path, request: StudySave) -> dict:
             "updated_at": now(),
             "study_hash": canonical_hash(request.study.model_dump()),
         }
+        if approval:
+            value["approval_id"] = approval["id"]
         write_json(folder / "revisions" / f"{revision + 1}.json", value)
         write_json(folder / "current.json", value)
         write_json(storage / "active-study.json", {"id": key})

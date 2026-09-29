@@ -64,6 +64,8 @@ def initialize_attempt(folder: Path, request: RunRequest, cad: dict | None = Non
         write_json(folder / "selection.json", cad["selection"])
         if cad.get("desktop_context"):
             write_json(folder / "desktop-context.json", cad["desktop_context"])
+        if cad.get("campaign_context"):
+            write_json(folder / "campaign-context.json", cad["campaign_context"])
         if cad.get("approved_mesh"):
             shutil.copytree(
                 cad["approved_mesh"],
@@ -96,6 +98,8 @@ def initialize_attempt(folder: Path, request: RunRequest, cad: dict | None = Non
 
 
 def launch_attempt(folder: Path) -> dict:
+    from .recovery import clean_environment
+
     global _children
     _children = [p for p in _children if p.poll() is None]
     with (folder / "runner.log").open("a") as output:
@@ -105,6 +109,7 @@ def launch_attempt(folder: Path) -> dict:
             stdout=output,
             stderr=subprocess.STDOUT,
             start_new_session=True,
+            env=clean_environment(),
         )
     _children.append(proc)
     state = update_status(folder, process=process_identity(proc.pid))
@@ -261,9 +266,29 @@ class RunManager:
             reverse=True,
         )
 
-    def submit(self, request: RunRequest, cad: dict | None = None) -> dict:
+    def submit(
+        self, request: RunRequest, cad: dict | None = None, *, campaign_id: str | None = None
+    ) -> dict:
         request = RunRequest.model_validate(request.model_dump())
         with file_lock(self.storage / ".admission.lock"):
+            from .recovery import CAMPAIGN_ACTIVE, campaign_status
+
+            owners = [
+                campaign_status(p.parent)
+                for p in (self.storage / "campaigns").glob("*/status.json")
+            ]
+            active_owners = [s for s in owners if s["status"] in CAMPAIGN_ACTIVE]
+            if active_owners:
+                if len(active_owners) != 1 or active_owners[0]["id"] != campaign_id:
+                    raise ValueError(
+                        "An approved recovery owns this worker. Wait or stop recovery first."
+                    )
+                if active_owners[0].get("expected_request_hash") != canonical_hash(
+                    request.model_dump()
+                ):
+                    raise ValueError("Job does not match the recovery's reserved intent.")
+            elif campaign_id:
+                raise ValueError("Recovery is no longer active.")
             states = self.list()
             for state in states:
                 previous = state.get("request")
@@ -351,6 +376,17 @@ class RunManager:
                         "study": record,
                         "annotations": read_json(notes) if notes.exists() else None,
                     }
+                    if record.get("approval_id"):
+                        proposal = (
+                            self.storage / "assistant/requests" / f"{record['approval_id']}.json"
+                        )
+                        if proposal.exists():
+                            ledger = read_json(proposal)
+                            if ledger.get("applied", {}).get("study_hash") != record["study_hash"]:
+                                raise ValueError(
+                                    "The study's assistant approval ledger does not match this revision."
+                                )
+                            cad["desktop_context"]["assistant_approval"] = ledger
             folder = self.runs / uuid.uuid4().hex
             initialize_attempt(folder, request, cad)
             try:

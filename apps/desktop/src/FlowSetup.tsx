@@ -9,6 +9,9 @@ import type {
 } from "./types";
 
 type Values = {
+  physics: "laminar" | "sst";
+  intensity: string;
+  lengthScale: string;
   name: string;
   flow: string;
   density: string;
@@ -45,6 +48,15 @@ export function loadStudyValues(
   );
   const s = record?.study;
   const defaults: Values = {
+    physics: s?.recipe === "sst-straight-duct/1" ? "sst" : "laminar",
+    intensity:
+      s?.turbulence_intensity !== undefined
+        ? String(s.turbulence_intensity)
+        : "",
+    lengthScale:
+      s?.turbulence_length_scale_m !== undefined
+        ? String(s.turbulence_length_scale_m * 1000)
+        : "",
     name: s?.name || geometry.source_name || "Prepared STEP flow",
     flow: s ? String(s.flow_rate_m3_s) : "",
     density: s ? String(s.density_kg_m3) : "1000",
@@ -80,8 +92,18 @@ export function studyFromValues(
   assignments: Record<string, Role>,
 ): InternalStudy {
   return {
-    schema_version: "venturi.internal-study.v1",
-    recipe: "laminar-internal/1",
+    schema_version:
+      values.physics === "sst"
+        ? "venturi.rans-study.v1"
+        : "venturi.internal-study.v1",
+    recipe:
+      values.physics === "sst" ? "sst-straight-duct/1" : "laminar-internal/1",
+    ...(values.physics === "sst"
+      ? {
+          turbulence_intensity: Number(values.intensity),
+          turbulence_length_scale_m: Number(values.lengthScale) / 1000,
+        }
+      : {}),
     name: values.name,
     selection: { geometry_hash: geometry.geometry_hash, assignments },
     flow_rate_m3_s:
@@ -220,8 +242,10 @@ export function FlowSetup({
       </div>
       <p>
         Find pressure loss and outlet flow split in a prepared fluid volume.
-        This recipe uses steady laminar flow, a uniform normal inlet, equal
-        zero-gauge outlet pressures and stationary no-slip walls.
+        Recipes use a uniform normal inlet, equal zero-gauge outlet pressures
+        and stationary no-slip walls. The experimental turbulence recipe is
+        limited to a straight smooth circular duct and awaits independent CFD
+        review.
       </p>
       <form
         onSubmit={(e) => {
@@ -246,6 +270,37 @@ export function FlowSetup({
         }}
       >
         <div className="flow-fields">
+          <label>
+            Flow recipe
+            <select
+              value={values.physics}
+              disabled={writing || disabled}
+              onChange={(e) => update("physics", e.target.value)}
+            >
+              <option value="laminar">
+                Steady laminar · port Reynolds ≤ 200
+              </option>
+              <option value="sst">
+                Experimental SST · straight circular duct only
+              </option>
+            </select>
+          </label>
+          {values.physics === "sst" && (
+            <>
+              {numeric(
+                "Turbulence intensity (fraction)",
+                "intensity",
+                0.000001,
+                0.2,
+              )}
+              {numeric(
+                "Turbulence length scale (mm)",
+                "lengthScale",
+                0.000001,
+                1000,
+              )}
+            </>
+          )}
           <label>
             Study name
             <input

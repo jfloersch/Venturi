@@ -1,10 +1,16 @@
-# Architecture decisions — milestones 1 and 2
+# Architecture decisions — milestones 1–4
 
 ## Shared desktop, independent numerical worker
 
 The desktop is Tauri 2 + React/TypeScript, with vtk.js for the CAD viewer. A Python service owns deterministic simulation tools. The desktop calls `venturi.worker.v1` over authenticated loopback HTTP. The same Python workflows power the CLI. React contains no solver dictionaries or acceptance rules.
 
-The development shell connects to an already-running worker on port 8765. `scripts/dev.py` starts both processes and supplies an ephemeral token to the native shell or browser session. The compiled shell alone does not install or bundle Python/OpenFOAM. Packaging the application helper, runtime setup wizard, and signed public installers are subsequent work.
+The development shell connects to an already-running worker on port 8765.
+`scripts/dev.py` starts both processes and supplies an ephemeral token. Milestone 4
+release bundles embed a worker wheel, pinned bootstrap binary and hash-locked
+dependency list. Guided setup installs a private Python environment and the pinned
+solver; `desktop_host.py` starts or reconnects an installed worker using a private
+local session file. Windows launches the same worker through Ubuntu-22.04 in WSL2.
+Release signing is configured separately and requires deployment credentials.
 
 Windows uses WSL2 for the worker; macOS will use a Linux VM, with Multipass a candidate; Linux can execute the worker directly. Windows/macOS native shells share the interface. OS-specific launch/provisioning belongs outside the scientific implementation. The current automated bootstrap deliberately accepts only Ubuntu 22.04 x86_64, including WSL2.
 
@@ -49,7 +55,62 @@ Every numerical tool runs in its own process group through a small Linux supervi
 
 OpenFOAM rejects spaces and non-ASCII case paths. For those paths the adapter creates a private ASCII symlink under `/tmp` for each tool, preserving artifacts in the original directory. Normal completion removes the alias; an abrupt runner kill can leave an inert temporary alias. It is never a project identifier.
 
-No external AI, billing service, account, or network upload is involved in a run. Setup downloads dependencies. The worker binds to loopback, requires a token for project data/actions, and restricts browser origins. A future remote worker needs an authenticated transport; do not expose this development server directly to a network.
+Simulation execution makes no external AI calls. Optional milestone-3 assistant and visual-review requests contact OpenAI only after explicit sharing approval. Setup downloads dependencies. The worker binds to loopback, requires a token for project data/actions, and restricts browser origins. A future remote worker needs an authenticated transport; do not expose this development server directly to a network.
+
+## Bounded assistance and independent recovery
+
+`assistant.py` sends strict Responses API function-call requests to a fixed OpenAI
+endpoint. The two tools propose a study or record visual observations; neither
+tool has execution authority. Model output is revalidated locally. Context
+approval binds a hash covering geometry metadata, exact study revision, annotations
+and recent conversation. Applying a proposal records user approval, old/new values,
+sources, rationale and dependent run identifiers. Immutable study revisions retain
+the approval identifier; subsequent desktop attempts freeze the approval ledger.
+
+Keys remain in worker memory or an explicitly selected supported OS credential
+store. The connection file contains only model, declared prices and budget.
+Validation/error messages omit submitted credentials. Solver and recovery processes
+receive an environment with provider secrets and API tokens removed. Every provider
+request reserves its conservative input/output allowance before network I/O under a
+cross-process lock. Its idempotency key is durable. Missing or ambiguous responses
+retain their reservation and are never automatically resent. Actual reported usage
+settles successful reservations at user-declared rates; these estimates are not a
+provider billing guarantee. Images use low detail and text/encoded-image byte bounds.
+
+`recovery.py` is a detached process owning a frozen plan and explicit finite policy.
+It reserves each job intent before launch; the job manager rejects unowned or
+unexpected work while a campaign is active. A stability/residual failure can double
+iterations within the ceiling; supported mesh-quality/mapping failures can reduce
+cell size by the approved factor. Changed studies get a fresh audited mesh, with
+the existing exact-mesh regeneration check retained for the solve. Geometry,
+materials, flow, physics and quantitative criteria remain frozen. Resource guards
+check aggregate elapsed time and retained attempt bytes, including approved-mesh
+copies. Input copies are checked against remaining disk before launch. Runtime disk
+growth is monitored, not an OS filesystem quota; termination has polling latency.
+The policy counts separate mesh-review jobs; each solver job also regenerates its
+approved mesh as part of its existing reproducibility check.
+
+A terminal job status can precede manifest finalization. Recovery waits on the
+attempt lock before verifying artifacts. A dead supervisor cancels any owned live
+job and becomes interrupted; restart never silently repeats a charged request or
+simulation. Pressure/branch-flow changes over 2% receive an explicit sensitivity
+flag. All numerically passing campaigns remain provisional while independent
+qualification and mesh independence are unassessed.
+
+The separate `venturi.rans-study.v1` / `sst-straight-duct/1` contract preserves old
+laminar schemas and hashes. It compiles Foundation-14 kOmegaSST with explicit
+inlet turbulence, kqR/omega/nut wall functions and meshWave wall distance. Native
+k/omega/nut positivity, residuals and every wall-face y+ are checked. The yPlus
+function skips initial-time execution so it cannot mutate frozen initial fields.
+Only the dimensionless native `[]` syntax is normalized to seven zero exponents;
+pressure/velocity dimensional checks remain strict.
+
+`visual_review.py` reads the actual VTK volume export. Three fixed central cuts per
+field use native cell values, one global scalar range per field and explicit SI
+labels. The packet binds source/result/image hashes and includes numerical checks,
+histories and boundary conditions. It is stored outside the immutable run, with a
+separate export manifest. Model observations have fixed artifact identifiers and
+carry no verdict field or authority to override quantitative status.
 
 
 ## Study, recipe and evidence contracts
@@ -156,3 +217,36 @@ cannot approve a newer draft. The UI compares draft inputs with the mesh study,
 requires a rendered mesh and preserves the worker's exact mesh/study/runtime
 binding. Reopening an API session restores attempts without resubmission. The
 active tab/run survives a browser reload; drafts still invalidate old approvals.
+
+## Managed gateway and release boundary
+
+`gateway.py` is a separate FastAPI service, backed by `managed_ledger.py` and a
+persistent SQLite WAL database. It never launches numerical tools. Account sessions
+are opaque random tokens stored as hashes, passwords use salted scrypt, and recovery
+codes rotate credentials and revoke sessions. The local adapter keeps session
+secrets in memory or the OS credential store, outside simulation environments.
+
+The gateway owns its model route and tariff. Integer micro-USD reservations are
+atomic with wallet/study/account/global checks. Usage settlement releases unused
+funds; failures with known usage settle their actual tariff charge, while ambiguous
+requests remain reserved. Account/request identity and payload hashes prevent
+retries from repeating inference. Stripe fulfillment verifies raw-body signatures,
+payment mode, order identity, currency and amount; unique orders and events prevent
+duplicate credits. Refunds use cumulative deltas, and disputes freeze new spending.
+
+Local proposal approval, applicability and numerical checks are unchanged by the
+billing route. Pre-save proposal and subsequent saved-study requests share a
+spending scope, and visual reviews use the originating saved study where available.
+Changing the billing route clears desktop consent; provider/model/tariff information
+is also bound into the shared-context hash. No automatic BYO-to-Managed fallback
+exists. Conservative estimates are displayed before text proposal requests.
+
+`support.py` uses an explicit allowlist instead of trying to redact arbitrary logs.
+Its export endpoint requires the hash of the reviewed preview. Gateway prompts are
+not persisted; structured results have a short recovery cache, with accounting
+retained separately. See milestone-4-deployment.md for retention and reconciliation.
+
+The installer locks setup, worker startup and job admission before maintenance,
+refuses active runs/campaigns, and stops only its recorded idle API process before
+changing dependencies. Successful installation atomically selects the versioned
+application directory. Existing projects and old application versions are retained.

@@ -38,6 +38,7 @@ export function Viewer({
   const scene = useRef<{
     render: () => void;
     reset: () => void;
+    resetClipping: () => void;
     actors: {
       id: string;
       actor: ReturnType<typeof vtkActor.newInstance>;
@@ -160,6 +161,7 @@ export function Viewer({
       scene.current = {
         render: () => renderWindow.render(),
         reset,
+        resetClipping: () => renderer.resetCameraClippingRange(),
         actors,
         plane,
         camera,
@@ -287,6 +289,8 @@ export function Viewer({
       ...(restoreCamera.focal_point as [number, number, number]),
     );
     camera.setViewUp(...(restoreCamera.view_up as [number, number, number]));
+    // Orbiting also changes near/far clipping; restore the complete visible view.
+    scene.current.resetClipping();
     scene.current.render();
   }, [restoreCamera]);
 
